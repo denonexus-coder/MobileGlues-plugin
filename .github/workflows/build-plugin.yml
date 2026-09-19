@@ -1,4 +1,5 @@
 name: MobileGlues Plugin
+
 on:
   push:
     branches: [main, dev]
@@ -41,14 +42,8 @@ jobs:
           key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
           restore-keys: ${{ runner.os }}-gradle-
 
-      - name: Build APK
-        run: |
-            echo "::warning::Signing secrets not configured. Building unsigned APK."
-            ./gradlew assembleRelease -x :app:packageRelease -PskipSigning=true
-          else
-            ./gradlew assembleRelease -x :app:packageRelease
-          fi
-        env:
+      - name: Build APK (unsigned)
+        run: ./gradlew assembleRelease
 
       - uses: actions/upload-artifact@v4
         with:
