@@ -43,16 +43,12 @@ jobs:
 
       - name: Build APK
         run: |
-          if [ -z "${{ secrets.SIGNING_STORE_PASSWORD }}" ]; then
             echo "::warning::Signing secrets not configured. Building unsigned APK."
-            ./gradlew assembleRelease -PskipSigning=true
+            ./gradlew assembleRelease -x :app:packageRelease -PskipSigning=true
           else
-            ./gradlew assembleRelease
+            ./gradlew assembleRelease -x :app:packageRelease
           fi
         env:
-          SIGNING_STORE_PASSWORD: ${{ secrets.SIGNING_STORE_PASSWORD }}
-          SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
-          SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
 
       - uses: actions/upload-artifact@v4
         with:
