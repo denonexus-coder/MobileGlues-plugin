@@ -227,35 +227,44 @@ enum class HideMGEnvLevel(override val wire: Int, @param:StringRes private val l
 }
 
 /** `bufferUploadMode`: como subir VBOs. */
-enum class BufferUploadMode(val wire: Int, @param:StringRes private val labelRes: Int) {
+enum class BufferUploadMode(
+    override val wire: Int,
+    @param:StringRes private val labelRes: Int,
+) : SpinnerOption {
     Auto(0, R.string.option_buffer_upload_auto),
     MapPersistent(1, R.string.option_buffer_upload_map_persistent),
     SubData(2, R.string.option_buffer_upload_sub_data),
     CopyBuffer(3, R.string.option_buffer_upload_copy_buffer);
-    fun label(context: Context): CharSequence = context.getString(labelRes)
+    override fun label(context: Context): CharSequence = context.getString(labelRes)
     companion object {
         fun fromWire(wire: Int?): BufferUploadMode = entries.firstOrNull { it.wire == wire } ?: Auto
     }
 }
 
 /** `textureSwizzleMode`: força ou não reescrever canais de texturas. */
-enum class TextureSwizzleMode(val wire: Int, @param:StringRes private val labelRes: Int) {
+enum class TextureSwizzleMode(
+    override val wire: Int,
+    @param:StringRes private val labelRes: Int,
+) : SpinnerOption {
     Auto(0, R.string.option_texture_swizzle_auto),
     Force(1, R.string.option_texture_swizzle_force);
-    fun label(context: Context): CharSequence = context.getString(labelRes)
+    override fun label(context: Context): CharSequence = context.getString(labelRes)
     companion object {
         fun fromWire(wire: Int?): TextureSwizzleMode = entries.firstOrNull { it.wire == wire } ?: Auto
     }
 }
 
 /** `maxAnisotropyOverride`: 0 = respeitar o que o jogo pediu. */
-enum class MaxAnisotropyOverride(val wire: Int, @param:StringRes private val labelRes: Int) {
+enum class MaxAnisotropyOverride(
+    override val wire: Int,
+    @param:StringRes private val labelRes: Int,
+) : SpinnerOption {
     Default(0, R.string.option_max_anisotropy_default),
     X2(2, R.string.option_max_anisotropy_2),
     X4(4, R.string.option_max_anisotropy_4),
     X8(8, R.string.option_max_anisotropy_8),
     X16(16, R.string.option_max_anisotropy_16);
-    fun label(context: Context): CharSequence = context.getString(labelRes)
+    override fun label(context: Context): CharSequence = context.getString(labelRes)
     companion object {
         fun fromWire(wire: Int?): MaxAnisotropyOverride = entries.firstOrNull { it.wire == wire } ?: Default
     }

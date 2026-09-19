@@ -311,4 +311,8 @@ Please note, this action is <b><font color="@colorError">irreversible</font></b>
     <string name="diag_perfetto_enabled">Enable Perfetto tracing</string>
     <string name="diag_perfetto_max_duration">Max duration (s)</string>
     <string name="diag_capability_report">Generate capability report</string>
+    <string name="option_hide_mg_env_level">Hide MG env</string>
+    <string name="option_buffer_upload_mode">Buffer upload</string>
+    <string name="option_texture_swizzle_mode">Texture swizzle</string>
+    <string name="option_max_anisotropy">Max anisotropy</string>
 </resources>
