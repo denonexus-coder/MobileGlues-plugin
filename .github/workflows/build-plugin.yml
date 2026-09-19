@@ -1,0 +1,60 @@
+name: MobileGlues Plugin
+on:
+  push:
+    branches: [main, dev]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - run: echo "date_today=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
+      - run: echo "repository_name=$(echo '${{ github.repository }}' | awk -F '/' '{print $2}')" >> $GITHUB_ENV
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+          cache: 'gradle'
+
+      - name: Setup Android SDK
+        run: |
+          SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          chmod +x "$SDKMANAGER" 2>/dev/null || true
+          yes | "$SDKMANAGER" --licenses > /dev/null 2>&1 || true
+          yes | "$SDKMANAGER" "ndk;27.3.13750724" > /dev/null
+          echo "ndk.dir=$ANDROID_HOME/ndk/27.3.13750724" >> local.properties
+        env:
+          ANDROID_HOME: /usr/local/lib/android/sdk
+
+      - run: chmod +x ./gradlew
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: ${{ runner.os }}-gradle-
+
+      - name: Build APK
+        run: |
+          if [ -z "${{ secrets.SIGNING_STORE_PASSWORD }}" ]; then
+            echo "::warning::Signing secrets not configured. Building unsigned APK."
+            ./gradlew assembleRelease -PskipSigning=true
+          else
+            ./gradlew assembleRelease
+          fi
+        env:
+          SIGNING_STORE_PASSWORD: ${{ secrets.SIGNING_STORE_PASSWORD }}
+          SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
+          SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.repository_name }}_${{ env.date_today }}_${{ github.sha }}
+          path: app/build/outputs/apk/release/
