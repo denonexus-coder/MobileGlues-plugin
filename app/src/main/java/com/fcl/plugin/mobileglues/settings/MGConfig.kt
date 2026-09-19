@@ -245,6 +245,37 @@ data class MultidrawSettings(
  * native 的 `AngleDepthClearFixMode` 还有一个 `Mode2 = 2`，但那一档不对外开放，
  * 本 App 不提供、也不接受它。
  */
+
+/**
+ * `multidrawEngine`. Seleciona o MOTOR de multidraw da lib v3.
+ *
+ * Legacy usa a ordenação de backends existente; VMDI/IMDBI são motores
+ * próprios da lib e ignoram essa ordenação.
+ * Escrito no config.json como STRING, que o native aceita (strcasecmp).
+ */
+enum class MultidrawEngine(
+    val key: String,
+    override val wire: Int,
+    @param:StringRes private val labelRes: Int,
+) : SpinnerOption {
+    Legacy("legacy", 0, R.string.option_multidraw_engine_legacy),
+    Vmdi("vmdi", 1, R.string.option_multidraw_engine_vmdi),
+    Imdbi("imdbi", 2, R.string.option_multidraw_engine_imdbi);
+
+    override fun label(context: Context): CharSequence = context.getString(labelRes)
+
+    /** VMDI/IMDBI ativos ⇒ ordenação de backends não se aplica. */
+    val usesBackendOrdering: Boolean get() = this == Legacy
+
+    companion object {
+        fun fromKey(key: String?): MultidrawEngine =
+            entries.firstOrNull { it.key.equals(key, ignoreCase = true) } ?: Legacy
+
+        fun fromWire(wire: Int?): MultidrawEngine =
+            entries.firstOrNull { it.wire == wire } ?: Legacy
+    }
+}
+
 enum class DepthClearFixMode(override val wire: Int, @param:StringRes private val labelRes: Int) :
     SpinnerOption {
     Disabled(0, R.string.option_angle_clear_workaround_disable),
@@ -371,8 +402,17 @@ data class MGConfig(
     val extTimerQuery: Boolean = true,
     val extDirectStateAccess: Boolean = false,
     val fsr1: Fsr1Preset = Fsr1Preset.Disabled,
+    // ── Motor MultiDraw (lib v3) ── tudo opt-in, default conserva comportamento atual
+    val multidrawEngine: MultidrawEngine = MultidrawEngine.Legacy,
+    val enableVMDI: Boolean = false,
+    val enableIMDBI: Boolean = false,
+
 ) {
     val fsr1Enabled: Boolean get() = fsr1 != Fsr1Preset.Disabled
+
+    /** Motor novo ativo ⇒ tela de ordenação de backends fica desabilitada. */
+    val multidrawOrderingActive: Boolean get() = multidrawEngine.usesBackendOrdering
+
 
     companion object {
         val Default = MGConfig()

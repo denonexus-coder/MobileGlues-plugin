@@ -260,4 +260,14 @@ Please note, this action is <b><font color="@colorError">irreversible</font></b>
     <string name="sponsor_confirm_msg">If you happened to complete a donation just now, tap “Donated” and we will never bring this up again. If not, that is completely fine too.</string>
     <string name="sponsor_action_donated">I donated</string>
     <string name="sponsor_action_not_yet">Not yet</string>
+
+    <!-- Motor MultiDraw (lib v3) -->
+    <string name="option_multidraw_engine_title">MultiDraw Engine</string>
+    <string name="option_multidraw_engine_legacy">Original (Legacy)</string>
+    <string name="option_multidraw_engine_vmdi">VMDI — Virtual MultiDraw Indirect</string>
+    <string name="option_multidraw_engine_imdbi">IMDBI — Infinity Bi-Indirect</string>
+    <string name="option_multidraw_engine_desc">Legacy uses backend ordering below. VMDI/IMDBI are self-managed engines and ignore it.</string>
+    <string name="option_enable_vmdi">Enable VMDI</string>
+    <string name="option_enable_imdbi">Enable IMDBI</string>
+    <string name="md_engine_ordering_disabled">Backend ordering inactive: the %1$s engine manages dispatch internally.</string>
 </resources>

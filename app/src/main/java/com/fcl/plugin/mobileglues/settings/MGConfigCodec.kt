@@ -34,6 +34,10 @@ internal object MGConfigCodec {
     private const val KEY_DEPTH_CLEAR_FIX = "angleDepthClearFixMode"
     private const val KEY_GL_VERSION = "customGLVersion"
     private const val KEY_FSR1 = "fsr1Setting"
+    private const val KEY_MULTIDRAW_ENGINE = "multidrawEngine"
+    private const val KEY_ENABLE_VMDI = "enableVMDI"
+    private const val KEY_ENABLE_IMDBI = "enableIMDBI"
+
 
     private val KNOWN_KEYS = listOf(
         KEY_ANGLE,
@@ -48,6 +52,10 @@ internal object MGConfigCodec {
         KEY_DEPTH_CLEAR_FIX,
         KEY_GL_VERSION,
         KEY_FSR1,
+        KEY_MULTIDRAW_ENGINE,
+        KEY_ENABLE_VMDI,
+        KEY_ENABLE_IMDBI,
+
     ) + MultidrawEntry.entries.flatMap { listOf(it.orderKey, it.legacyModeKey) }
 
     fun decode(root: JsonObject): MGConfig {
@@ -69,6 +77,10 @@ internal object MGConfigCodec {
             extDirectStateAccess = root.boolOrNull(KEY_EXT_DIRECT_STATE_ACCESS)
                 ?: defaults.extDirectStateAccess,
             fsr1 = Fsr1Preset.entries.fromWire(root.intOrNull(KEY_FSR1), defaults.fsr1),
+            multidrawEngine = MultidrawEngine.fromKey(root.stringOrNull(KEY_MULTIDRAW_ENGINE)),
+            enableVMDI = root.boolOrNull(KEY_ENABLE_VMDI) ?: defaults.enableVMDI,
+            enableIMDBI = root.boolOrNull(KEY_ENABLE_IMDBI) ?: defaults.enableIMDBI,
+
         )
     }
 
@@ -83,6 +95,10 @@ internal object MGConfigCodec {
             addProperty(KEY_DEPTH_CLEAR_FIX, config.depthClearFix.wire)
             addProperty(KEY_GL_VERSION, config.glVersion.wire)
             addProperty(KEY_FSR1, config.fsr1.wire)
+            addProperty(KEY_MULTIDRAW_ENGINE, config.multidrawEngine.key)
+            addProperty(KEY_ENABLE_VMDI, config.enableVMDI.wire)
+            addProperty(KEY_ENABLE_IMDBI, config.enableIMDBI.wire)
+
             encodeMultidraw(config.multidraw)
         }
 
