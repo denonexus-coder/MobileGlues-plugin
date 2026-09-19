@@ -227,6 +227,9 @@ private fun ConfigSections(controller: AppController, config: MGConfig) {
                 MiuixMultidrawOrderContent(controller, config)
             }
         }
+        }
+        MiuixAdvancedSection(controller, config)
+        MiuixDebugSection(controller, config)
     }
 
 }

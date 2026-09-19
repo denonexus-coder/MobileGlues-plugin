@@ -211,6 +211,9 @@ private fun ConfigSections(controller: AppController, config: MGConfig) {
                 MultidrawOrderContent(controller, config)
             }
         }
+        }
+        MaterialAdvancedSection(controller, config)
+        MaterialDebugSection(controller, config)
     }
 
 
