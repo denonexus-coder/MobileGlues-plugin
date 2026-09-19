@@ -1,171 +1,168 @@
 package com.fcl.plugin.mobileglues.settings
 
-import com.google.gson.Gson
-import com.google.gson.JsonArray
-import com.google.gson.JsonElement
 import com.google.gson.JsonObject
-import com.google.gson.JsonParser
 
-object MGConfigCodec {
-    private val gson = Gson()
+/**
+ * `MG/config.json` 的读写格式。
+ *
+ * 这里是键名、以及「磁盘上的值不合法时用什么」的唯一定义处；除此之外没有第二个地方
+ * 知道 config.json 长什么样。
+ *
+ * 两条约定：
+ *  - [decode] 永不抛异常。单个字段坏掉（缺失、越界、类型不对）只会让该字段回落到默认值，
+ *    不会连累整份配置——只有 JSON 本身语法错误才算文件损坏，那由 [MGConfigStore] 处理。
+ *  - [encode] 会带上 [foreignKeysOf] 取出的未知键。native 端读的键比 App 认识的多
+ *    （例如 `hideMGEnvLevel`），不把它们写回去就等于每次保存都在删别人的设置。
+ */
+internal object MGConfigCodec {
 
-    // ── Encode ────────────────────────────────────────────────────────
-    fun encode(config: MGConfig): String {
-        val root = JsonObject()
+    private const val KEY_ANGLE = "enableANGLE"
+    private const val KEY_NO_ERROR = "enableNoError"
+    private const val KEY_EXT_TIMER_QUERY = "enableExtTimerQuery"
+    private const val KEY_EXT_COMPUTE_SHADER = "enableExtComputeShader"
+    private const val KEY_EXT_DIRECT_STATE_ACCESS = "enableExtDirectStateAccess"
+    private const val KEY_GLSL_CACHE = "maxGlslCacheSize"
 
-        root.add("_meta", obj(
-            "profile" to "balanced-baseline",
-            "version" to "3.0",
-            "schema"  to "mobileglues.config.v3",
-        ))
+    /**
+     * 已废弃的三代旧键：native 不再读取，只会在它们还存在时打弃用警告。
+     * 保留在 [KNOWN_KEYS] 里是为了让下一次保存把它们清掉，而不是当成未知键永久留着。
+     */
+    private const val KEY_MULTIDRAW_LEGACY = "multidrawMode"
+    private const val KEY_MULTIDRAW_DISABLE_LEGACY = "multidrawDisableBackends"
 
-        root.add("_layer1_core", obj(
-            "gl_error_interception"     to true,
-            "gl_state_shadowing"        to true,
-            "log_infrastructure"        to true,
-            "glsl_to_es_translation"    to true,
-            "egl_gles_loader"           to true,
-            "legacy_multidraw_fallback" to true,
-        ))
+    private const val KEY_MULTIDRAW_ORDER = "multidrawOrder"
+    private const val KEY_DEPTH_CLEAR_FIX = "angleDepthClearFixMode"
+    private const val KEY_GL_VERSION = "customGLVersion"
+    private const val KEY_FSR1 = "fsr1Setting"
+    private const val KEY_MULTIDRAW_ENGINE = "multidrawEngine"
+    private const val KEY_ENABLE_VMDI = "enableVMDI"
+    private const val KEY_ENABLE_IMDBI = "enableIMDBI"
 
-        root.addProperty("enableNoError",               config.noError.wire)
-        root.addProperty("forceGlGetErrorSkip",         if (config.forceGlGetErrorSkip) 1 else 0)
-        root.addProperty("enableANGLE",                 config.angle.wire)
-        root.addProperty("angleDepthClearFixMode",      config.depthClearFix.wire)
-        root.addProperty("multidrawEngine",             config.multidrawEngine.key)
-        root.add("multidrawGlobalOrder", JsonArray().apply {
-            config.multidrawGlobalOrder.forEach { add(it) }
-        })
-        root.addProperty("fsr1Setting",                 config.fsr1.wire)
-        root.addProperty("fsr1Sharpness",               config.fsr1Sharpness)
-        root.addProperty("customGLVersion",             config.glVersion.wire)
-        root.addProperty("enableExtTimerQuery",         if (config.extTimerQuery) 1 else 0)
-        root.addProperty("enableExtComputeShader",      if (config.extComputeShader) 1 else 0)
-        root.addProperty("enableExtDirectStateAccess",  if (config.extDirectStateAccess) 1 else 0)
-        root.addProperty("enableExtGL43",               if (config.extGL43) 1 else 0)
-        root.addProperty("maxGlslCacheSize",            config.glslCacheSize.wire)
-        root.addProperty("forceDepthPrecisionFix",      if (config.forceDepthPrecisionFix) 1 else 0)
-        root.addProperty("bufferUploadMode",            config.bufferUploadMode)
-        root.addProperty("textureSwizzleMode",          config.textureSwizzleMode)
-        root.addProperty("maxAnisotropyOverride",       config.maxAnisotropyOverride)
-        root.addProperty("hideMGEnvLevel",              config.hideMGEnvLevel.wire)
 
-        root.add("diag", JsonObject().apply {
-            addProperty("enabled", config.diag.enabled)
-            add("overlay", JsonObject().apply {
-                addProperty("frameProfiler",    config.diag.overlay.frameProfiler)
-                addProperty("drawCallCount",    config.diag.overlay.drawCallCount)
-                addProperty("shaderRecompiles", config.diag.overlay.shaderRecompiles)
-                addProperty("backendTier",      config.diag.overlay.backendTier)
-                addProperty("cpuGpuLoad",       config.diag.overlay.cpuGpuLoad)
-            })
-            add("logging", JsonObject().apply {
-                addProperty("backendSelection", config.diag.logging.backendSelection)
-                addProperty("shaderRecompiles", config.diag.logging.shaderRecompiles)
-                addProperty("drawCallCount",    config.diag.logging.drawCallCount)
-                addProperty("glTrace",          config.diag.logging.glTrace)
-                addProperty("level",            config.diag.logging.level)
-            })
-            addProperty("capabilityReport", config.diag.capabilityReport)
-            add("perfetto", JsonObject().apply {
-                addProperty("enabled",        config.diag.perfetto.enabled)
-                addProperty("maxDurationSec", config.diag.perfetto.maxDurationSec)
-                add("categories", JsonArray().apply {
-                    config.diag.perfetto.categories.forEach { add(it) }
-                })
-            })
-        })
+    private val KNOWN_KEYS = listOf(
+        KEY_ANGLE,
+        KEY_NO_ERROR,
+        KEY_EXT_TIMER_QUERY,
+        KEY_EXT_COMPUTE_SHADER,
+        KEY_EXT_DIRECT_STATE_ACCESS,
+        KEY_GLSL_CACHE,
+        KEY_MULTIDRAW_LEGACY,
+        KEY_MULTIDRAW_DISABLE_LEGACY,
+        KEY_MULTIDRAW_ORDER,
+        KEY_DEPTH_CLEAR_FIX,
+        KEY_GL_VERSION,
+        KEY_FSR1,
+        KEY_MULTIDRAW_ENGINE,
+        KEY_ENABLE_VMDI,
+        KEY_ENABLE_IMDBI,
 
-        return gson.toJson(root)
-    }
+    ) + MultidrawEntry.entries.flatMap { listOf(it.orderKey, it.legacyModeKey) }
 
-    // ── Decode ────────────────────────────────────────────────────────
-    fun decode(json: String): MGConfig {
-        val root = JsonParser.parseString(json).asJsonObject
+    fun decode(root: JsonObject): MGConfig {
+        val defaults = MGConfig.Default
         return MGConfig(
-            angle = AngleConfig.entries.fromWire(
-                root.intOr("enableANGLE", 1), AngleConfig.EnableIfPossible),
-            noError = NoErrorConfig.entries.fromWire(
-                root.intOr("enableNoError", 0), NoErrorConfig.Auto),
-            depthClearFix = AngleDepthClearFixMode.entries.fromWire(
-                root.intOr("angleDepthClearFixMode", 0), AngleDepthClearFixMode.Disabled),
-            glVersion = GlVersion.fromWire(root.intOr("customGLVersion", 0)),
-            fsr1 = Fsr1Preset.entries.fromWire(
-                root.intOr("fsr1Setting", 0), Fsr1Preset.Disabled),
-            fsr1Sharpness = root.get("fsr1Sharpness")?.asFloat ?: 0.75f,
-            glslCacheSize = GlslCacheSize.fromWire(root.intOr("maxGlslCacheSize", 32)),
-            hideMGEnvLevel = HideMGEnvLevel.entries.fromWire(
-                root.intOr("hideMGEnvLevel", 0), HideMGEnvLevel.Disabled),
-            multidrawEngine = MultidrawEngine.entries.firstOrNull {
-                it.key.equals(root.str("multidrawEngine"), ignoreCase = true)
-            } ?: MultidrawEngine.Legacy,
-            multidrawGlobalOrder = root.getAsJsonArray("multidrawGlobalOrder")
-                ?.mapNotNull { it.asString }
-                ?: MultidrawOrderItem.DefaultOrder.map { it.key },
-            extTimerQuery        = root.intOr("enableExtTimerQuery", 0) > 0,
-            extComputeShader     = root.intOr("enableExtComputeShader", 0) > 0,
-            extDirectStateAccess = root.intOr("enableExtDirectStateAccess", 0) > 0,
-            extGL43              = root.intOr("enableExtGL43", 0) > 0,
-            bufferUploadMode       = root.intOr("bufferUploadMode", 0),
-            textureSwizzleMode     = root.intOr("textureSwizzleMode", 0),
-            maxAnisotropyOverride  = root.intOr("maxAnisotropyOverride", 0),
-            forceGlGetErrorSkip    = root.intOr("forceGlGetErrorSkip", 1) > 0,
-            forceDepthPrecisionFix = root.intOr("forceDepthPrecisionFix", 0) > 0,
-            diag = decodeDiag(root.getAsJsonObject("diag")),
+            // 缺键的回落必须与渲染器一致：native 的 config_get_int 对缺键回 -1，越界
+            // 一律按 DisableIfPossible 跑。这里若回落到 App 自己的默认（尽可能启用），
+            // 界面就会宣称一个游戏里并不成立的档位——老版本遗留的 config.json 正是这样。
+            angle = AngleConfig.entries.fromWire(root.intOrNull(KEY_ANGLE), AngleConfig.DisableIfPossible),
+            noError = NoErrorConfig.entries.fromWire(root.intOrNull(KEY_NO_ERROR), defaults.noError),
+            multidraw = decodeMultidraw(root),
+            depthClearFix = DepthClearFixMode.entries
+                .fromWire(root.intOrNull(KEY_DEPTH_CLEAR_FIX), defaults.depthClearFix),
+            glVersion = GlVersion.fromWire(root.intOrNull(KEY_GL_VERSION)),
+            glslCache = GlslCacheSize.fromWire(root.intOrNull(KEY_GLSL_CACHE)),
+            extComputeShader = root.boolOrNull(KEY_EXT_COMPUTE_SHADER)
+                ?: defaults.extComputeShader,
+            extTimerQuery = root.boolOrNull(KEY_EXT_TIMER_QUERY) ?: defaults.extTimerQuery,
+            extDirectStateAccess = root.boolOrNull(KEY_EXT_DIRECT_STATE_ACCESS)
+                ?: defaults.extDirectStateAccess,
+            fsr1 = Fsr1Preset.entries.fromWire(root.intOrNull(KEY_FSR1), defaults.fsr1),
+            multidrawEngine = MultidrawEngine.fromKey(root.stringOrNull(KEY_MULTIDRAW_ENGINE)),
+            enableVMDI = root.boolOrNull(KEY_ENABLE_VMDI) ?: defaults.enableVMDI,
+            enableIMDBI = root.boolOrNull(KEY_ENABLE_IMDBI) ?: defaults.enableIMDBI,
+
         )
     }
 
-    private fun decodeDiag(obj: JsonObject?): DiagConfig {
-        if (obj == null) return DiagConfig()
-        val ov = obj.getAsJsonObject("overlay")
-        val lg = obj.getAsJsonObject("logging")
-        val pf = obj.getAsJsonObject("perfetto")
-        return DiagConfig(
-            enabled = obj.boolOr("enabled", false),
-            overlay = DiagOverlay(
-                frameProfiler    = ov?.boolOr("frameProfiler", false) ?: false,
-                drawCallCount    = ov?.boolOr("drawCallCount", false) ?: false,
-                shaderRecompiles = ov?.boolOr("shaderRecompiles", false) ?: false,
-                backendTier      = ov?.boolOr("backendTier", false) ?: false,
-                cpuGpuLoad       = ov?.boolOr("cpuGpuLoad", false) ?: false,
-            ),
-            logging = DiagLogging(
-                backendSelection = lg?.boolOr("backendSelection", false) ?: false,
-                shaderRecompiles = lg?.boolOr("shaderRecompiles", false) ?: false,
-                drawCallCount    = lg?.boolOr("drawCallCount", false) ?: false,
-                glTrace          = lg?.boolOr("glTrace", false) ?: false,
-                level            = lg?.str("level") ?: "info",
-            ),
-            capabilityReport = obj.boolOr("capabilityReport", false),
-            perfetto = DiagPerfetto(
-                enabled        = pf?.boolOr("enabled", false) ?: false,
-                maxDurationSec = pf?.intOr("maxDurationSec", 30) ?: 30,
-                categories     = pf?.getAsJsonArray("categories")?.mapNotNull { it.asString }
-                    ?: listOf("gfx", "sched", "freq"),
-            ),
-        )
-    }
+    fun encode(config: MGConfig, foreignKeys: JsonObject?): JsonObject =
+        (foreignKeys?.deepCopy() ?: JsonObject()).apply {
+            addProperty(KEY_ANGLE, config.angle.wire)
+            addProperty(KEY_NO_ERROR, config.noError.wire)
+            addProperty(KEY_EXT_TIMER_QUERY, config.extTimerQuery.wire)
+            addProperty(KEY_EXT_COMPUTE_SHADER, config.extComputeShader.wire)
+            addProperty(KEY_EXT_DIRECT_STATE_ACCESS, config.extDirectStateAccess.wire)
+            addProperty(KEY_GLSL_CACHE, config.glslCache.wire)
+            addProperty(KEY_DEPTH_CLEAR_FIX, config.depthClearFix.wire)
+            addProperty(KEY_GL_VERSION, config.glVersion.wire)
+            addProperty(KEY_FSR1, config.fsr1.wire)
+            addProperty(KEY_MULTIDRAW_ENGINE, config.multidrawEngine.key)
+            addProperty(KEY_ENABLE_VMDI, config.enableVMDI.wire)
+            addProperty(KEY_ENABLE_IMDBI, config.enableIMDBI.wire)
 
-    // ── Helpers ───────────────────────────────────────────────────────
-    private fun JsonObject.intOr(k: String, fb: Int): Int =
-        get(k)?.takeIf { it.isJsonPrimitive }?.asInt ?: fb
-
-    private fun JsonObject.boolOr(k: String, fb: Boolean): Boolean =
-        get(k)?.takeIf { it.isJsonPrimitive }?.asBoolean ?: fb
-
-    private fun JsonObject.str(k: String): String? =
-        get(k)?.takeIf { it.isJsonPrimitive && it.asJsonPrimitive.isString }?.asString
-
-    private fun obj(vararg pairs: Pair<String, Any?>): JsonObject =
-        JsonObject().apply {
-            pairs.forEach { (k, v) ->
-                when (v) {
-                    null           -> add(k, com.google.gson.JsonNull.INSTANCE)
-                    is Boolean     -> addProperty(k, v)
-                    is Number      -> addProperty(k, v)
-                    is String      -> addProperty(k, v)
-                    is JsonElement -> add(k, v)
-                }
-            }
+            encodeMultidraw(config.multidraw)
         }
+
+    private fun decodeMultidraw(root: JsonObject): MultidrawSettings = MultidrawSettings(
+        // 与 native 一致：不认识的名字丢弃，重复项保留首次出现，漏掉的项按默认顺序补齐。
+        globalOrder = MultidrawOrderItem.normalize(
+            root.stringOrNull(KEY_MULTIDRAW_ORDER)
+                .orEmpty()
+                .split(',', ';')
+                .mapNotNull { MultidrawOrderItem.parse(it) },
+        ),
+        exceptions = MultidrawEntry.entries.mapNotNull { entry ->
+            // 键存在即例外开启；内容再怎么残缺，normalize 都会补成全项置换。
+            val raw = root.stringOrNull(entry.orderKey) ?: return@mapNotNull null
+            entry to entry.normalize(
+                raw.split(',', ';').mapNotNull { MultidrawBackend.parse(it) },
+            )
+        }.toMap(),
+    )
+
+    private fun JsonObject.encodeMultidraw(settings: MultidrawSettings) {
+        // 默认顺序就是「不写这个键」，两种等价表示只能留一种。
+        if (settings.globalOrder == MultidrawOrderItem.DefaultOrder) {
+            remove(KEY_MULTIDRAW_ORDER)
+        } else {
+            addProperty(KEY_MULTIDRAW_ORDER, settings.globalOrder.joinToString(",") { it.key })
+        }
+
+        MultidrawEntry.entries.forEach { entry ->
+            val exception = settings.exceptions[entry]
+            if (exception == null) {
+                remove(entry.orderKey)
+            } else {
+                addProperty(entry.orderKey, exception.joinToString(",") { it.key })
+            }
+            // 三代旧键 native 已不再读取，留着只会让它每次启动都打弃用警告。
+            remove(entry.legacyModeKey)
+        }
+        remove(KEY_MULTIDRAW_LEGACY)
+        remove(KEY_MULTIDRAW_DISABLE_LEGACY)
+    }
+
+    /** 取出配置文件里本 App 不认识的键，保存时原样写回。 */
+    fun foreignKeysOf(root: JsonObject): JsonObject =
+        root.deepCopy().apply { KNOWN_KEYS.forEach { remove(it) } }
+
+    /** native 端一律用 `> 0` 判断布尔开关，这里保持一致。 */
+    private val Boolean.wire: Int get() = if (this) 1 else 0
+
+    private fun JsonObject.intOrNull(key: String): Int? {
+        val element = get(key) ?: return null
+        if (!element.isJsonPrimitive) return null
+        val primitive = element.asJsonPrimitive
+        return runCatching {
+            // 容忍被手工改成字符串的数字（"32"）：读进来之后下一次保存会写回真正的整数。
+            if (primitive.isNumber) primitive.asInt else primitive.asString.trim().toInt()
+        }.getOrNull()
+    }
+
+    private fun JsonObject.boolOrNull(key: String): Boolean? = intOrNull(key)?.let { it > 0 }
+
+    private fun JsonObject.stringOrNull(key: String): String? {
+        val element = get(key) ?: return null
+        if (!element.isJsonPrimitive) return null
+        return runCatching { element.asString }.getOrNull()
+    }
 }
