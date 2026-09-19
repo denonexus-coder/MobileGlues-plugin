@@ -442,6 +442,10 @@ class AppController(
 
     fun selectNoError(target: NoErrorConfig) = update { it.copy(noError = target) }
 
+    fun selectMultidrawEngine(target: MultidrawEngine) {
+        update { it.copy(multidrawEngine = target) }
+    }
+
     fun selectGlVersion(target: GlVersion) {
         val current = configStore.config.value ?: return
         if (target == current.glVersion) return

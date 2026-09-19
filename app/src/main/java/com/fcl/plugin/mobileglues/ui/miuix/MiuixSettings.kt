@@ -32,6 +32,7 @@ import com.fcl.plugin.mobileglues.settings.AngleConfig
 import com.fcl.plugin.mobileglues.settings.DepthClearFixMode
 import com.fcl.plugin.mobileglues.settings.GlVersion
 import com.fcl.plugin.mobileglues.settings.GlslCacheScale
+import com.fcl.plugin.mobileglues.settings.MultidrawEngine
 import com.fcl.plugin.mobileglues.settings.MGConfig
 import com.fcl.plugin.mobileglues.settings.NoErrorConfig
 import com.fcl.plugin.mobileglues.settings.SpinnerOption
@@ -211,6 +212,12 @@ private fun ConfigSections(controller: AppController, config: MGConfig) {
         }
 
         MiuixGroup(title = stringResource(R.string.settings_group_advanced)) {
+            MiuixDropdownRow(
+                title = stringResource(R.string.option_multidraw_engine_title),
+                options = MultidrawEngine.entries.map { it.label(context).toString() },
+                selectedIndex = MultidrawEngine.entries.indexOf(config.multidrawEngine),
+                onSelect = { i -> controller.selectMultidrawEngine(MultidrawEngine.entries[i]) },
+            )
             OptionRow(
                 title = stringResource(R.string.option_custom_gl_version),
                 options = GlVersion.entries,

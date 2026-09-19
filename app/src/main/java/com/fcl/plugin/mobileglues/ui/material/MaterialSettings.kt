@@ -36,6 +36,7 @@ import com.fcl.plugin.mobileglues.settings.AngleConfig
 import com.fcl.plugin.mobileglues.settings.DepthClearFixMode
 import com.fcl.plugin.mobileglues.settings.GlVersion
 import com.fcl.plugin.mobileglues.settings.GlslCacheScale
+import com.fcl.plugin.mobileglues.settings.MultidrawEngine
 import com.fcl.plugin.mobileglues.settings.MGConfig
 import com.fcl.plugin.mobileglues.settings.NoErrorConfig
 import com.fcl.plugin.mobileglues.settings.SpinnerOption
@@ -197,6 +198,11 @@ private fun ConfigSections(controller: AppController, config: MGConfig) {
 
         PreferenceGroup(title = stringResource(R.string.settings_group_advanced)) {
             TextPreferenceRow(
+                title = stringResource(R.string.option_multidraw_engine_title),
+                summary = config.multidrawEngine.label(context).toString(),
+                onClick = { choice = ChoiceTarget.MultidrawEngine },
+            )
+            TextPreferenceRow(
                 title = stringResource(R.string.option_custom_gl_version),
                 summary = config.glVersion.label(context).toString(),
                 onClick = { choice = ChoiceTarget.GlVersion },
@@ -249,6 +255,14 @@ private fun ConfigSections(controller: AppController, config: MGConfig) {
             options = GlVersion.entries,
             selected = config.glVersion,
             onSelect = controller::selectGlVersion,
+            onDismiss = { choice = null },
+        )
+
+        ChoiceTarget.MultidrawEngine -> OptionDialog(
+            title = stringResource(R.string.option_multidraw_engine_title),
+            options = MultidrawEngine.entries,
+            selected = config.multidrawEngine,
+            onSelect = controller::selectMultidrawEngine,
             onDismiss = { choice = null },
         )
 
@@ -308,4 +322,4 @@ private fun <T : SpinnerOption> OptionDialog(
     )
 }
 
-private enum class ChoiceTarget { Angle, NoError, DepthClear, GlVersion }
+private enum class ChoiceTarget { Angle, NoError, DepthClear, GlVersion, MultidrawEngine }
