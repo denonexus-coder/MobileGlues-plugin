@@ -160,7 +160,6 @@ internal object MGConfigCodec {
             addProperty(KEY_EXT_DIRECT_STATE_ACCESS, config.extDirectStateAccess.wire)
             addProperty(KEY_EXT_GL43, config.enableExtGL43.wire)
             addProperty(KEY_DISABLE_COMPUTE_WEAK_GPU, config.disableComputeOnWeakGpu.wire)
-        KEY_DISABLE_COMPUTE_WEAK_GPU,
             addProperty(KEY_GLSL_CACHE, config.glslCache.wire)
             addProperty(KEY_DEPTH_CLEAR_FIX, config.depthClearFix.wire)
             addProperty(KEY_GL_VERSION, config.glVersion.wire)
