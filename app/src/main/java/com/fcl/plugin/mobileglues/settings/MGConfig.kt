@@ -342,6 +342,7 @@ data class MGConfig(
     val imdbiRingSizeKb: Int = 4096,
     val vmdiBackendTier: VmdiBackendTier = VmdiBackendTier.Auto,
     val vmdiEnableAutotune: Boolean = true,
+    val useProgramBinaryCache: Boolean = false,
 ) {
     val fsr1Enabled: Boolean get() = fsr1 != Fsr1Preset.Disabled
     val multidrawOrderingActive: Boolean get() = multidrawEngine.usesBackendOrdering

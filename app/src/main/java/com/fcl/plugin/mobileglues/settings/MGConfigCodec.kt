@@ -53,6 +53,7 @@ internal object MGConfigCodec {
     private const val KEY_IMDBI_RING = "imdbiRingSize"
     private const val KEY_VMDI_TIER = "vmdiBackendTier"
     private const val KEY_VMDI_AUTOTUNE = "vmdiEnableAutotune"
+    private const val KEY_USE_PROGRAM_BINARY_CACHE = "useProgramBinaryCache"
 
     // ── Layer 3 — Debug ──────────────────────────────────────────────────
     private const val KEY_DIAG = "diag"
@@ -88,6 +89,7 @@ internal object MGConfigCodec {
         KEY_IMDBI_RING,
         KEY_VMDI_TIER,
         KEY_VMDI_AUTOTUNE,
+        KEY_USE_PROGRAM_BINARY_CACHE,
         KEY_DIAG,
     ) + MultidrawEntry.entries.flatMap { listOf(it.orderKey, it.legacyModeKey) }
 
@@ -130,6 +132,7 @@ internal object MGConfigCodec {
             imdbiRingSizeKb = root.intOrNull(KEY_IMDBI_RING) ?: 4096,
             vmdiBackendTier = VmdiBackendTier.fromKey(root.stringOrNull(KEY_VMDI_TIER)),
             vmdiEnableAutotune = root.boolOrNull(KEY_VMDI_AUTOTUNE) ?: true,
+            useProgramBinaryCache = root.boolOrNull(KEY_USE_PROGRAM_BINARY_CACHE) ?: defaults.useProgramBinaryCache,
         )
     }
 
@@ -168,6 +171,7 @@ internal object MGConfigCodec {
             addProperty(KEY_IMDBI_RING, config.imdbiRingSizeKb)
             addProperty(KEY_VMDI_TIER, config.vmdiBackendTier.key)
             addProperty(KEY_VMDI_AUTOTUNE, config.vmdiEnableAutotune.wire)
+            addProperty(KEY_USE_PROGRAM_BINARY_CACHE, config.useProgramBinaryCache.wire)
 
             encodeMultidraw(config.multidraw)
         }

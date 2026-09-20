@@ -175,6 +175,14 @@ private fun ConfigSections(controller: AppController, config: MGConfig) {
                     onClick = controller::deleteGlslCache,
                 )
             }
+            SwitchPreferenceRow(
+                title = stringResource(R.string.option_program_binary_cache),
+                summary = stringResource(R.string.option_program_binary_cache_desc),
+                checked = config.useProgramBinaryCache,
+                onCheckedChange = { v ->
+                    controller.configStore.update { it.copy(useProgramBinaryCache = v) }
+                },
+            )
         }
 
         PreferenceGroup(title = stringResource(R.string.settings_group_ext)) {
