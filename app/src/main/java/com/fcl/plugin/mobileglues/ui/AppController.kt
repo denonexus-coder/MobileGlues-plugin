@@ -32,6 +32,7 @@ import com.fcl.plugin.mobileglues.settings.MultidrawBenchAnalyzer
 import com.fcl.plugin.mobileglues.settings.MultidrawBenchQuality
 import com.fcl.plugin.mobileglues.settings.MultidrawBenchReport
 import com.fcl.plugin.mobileglues.settings.MultidrawEntry
+import com.fcl.plugin.mobileglues.settings.MultidrawEngine
 import com.fcl.plugin.mobileglues.settings.MultidrawOrderItem
 import com.fcl.plugin.mobileglues.settings.MultidrawSettings
 import com.fcl.plugin.mobileglues.settings.NoErrorConfig

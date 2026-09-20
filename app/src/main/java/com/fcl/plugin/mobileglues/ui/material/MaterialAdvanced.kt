@@ -127,6 +127,33 @@ fun MaterialAdvancedSection(controller: AppController, config: MGConfig) {
             onSelect = { v -> controller.configStore.update { it.copy(maxAnisotropyOverride = v) } },
             onDismiss = { dialog = null },
         )
+        DialogKind.ImdbiBackend -> SingleChoiceDialog(
+            title = stringResource(R.string.option_imdbi_backend),
+            options = ImdbiBackend.entries.map { it.label(context).toString() },
+            selectedIndex = ImdbiBackend.entries.indexOf(config.imdbiBackend),
+            onSelect = { i ->
+                controller.configStore.update { it.copy(imdbiBackend = ImdbiBackend.entries[i]) }
+            },
+            onDismiss = { dialog = null },
+        )
+        DialogKind.ImdbiUnroll -> SingleChoiceDialog(
+            title = stringResource(R.string.option_imdbi_unroll_factor),
+            options = listOf("4×", "8×"),
+            selectedIndex = if (config.imdbiUnrollFactor == 8) 1 else 0,
+            onSelect = { i ->
+                controller.configStore.update { it.copy(imdbiUnrollFactor = if (i == 1) 8 else 4) }
+            },
+            onDismiss = { dialog = null },
+        )
+        DialogKind.VmdiTier -> SingleChoiceDialog(
+            title = stringResource(R.string.option_vmdi_tier),
+            options = VmdiBackendTier.entries.map { it.label(context).toString() },
+            selectedIndex = VmdiBackendTier.entries.indexOf(config.vmdiBackendTier),
+            onSelect = { i ->
+                controller.configStore.update { it.copy(vmdiBackendTier = VmdiBackendTier.entries[i]) }
+            },
+            onDismiss = { dialog = null },
+        )
         null -> Unit
     }
 }
