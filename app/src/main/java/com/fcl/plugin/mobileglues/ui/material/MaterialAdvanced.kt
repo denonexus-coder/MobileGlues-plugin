@@ -74,6 +74,14 @@ fun MaterialAdvancedSection(controller: AppController, config: MGConfig) {
                 controller.configStore.update { it.copy(forceGlGetErrorSkip = v) }
             },
         )
+        SwitchPreferenceRow(
+            title = "Disable compute on weak GPU",
+            summary = "Auto-disable compute on PowerVR/slow GPUs (recommended)",
+            checked = config.disableComputeOnWeakGpu,
+            onCheckedChange = { v ->
+                controller.configStore.update { it.copy(disableComputeOnWeakGpu = v) }
+            },
+        )
         TextPreferenceRow(
             title = stringResource(R.string.option_buffer_upload_mode, "Buffer upload"),
             summary = config.bufferUploadMode.label(context).toString(),

@@ -347,6 +347,7 @@ data class MGConfig(
     val vmdiBackendTier: VmdiBackendTier = VmdiBackendTier.Auto,
     val vmdiEnableAutotune: Boolean = true,
     val useProgramBinaryCache: Boolean = false,
+    val disableComputeOnWeakGpu: Boolean = true,
 ) {
     val fsr1Enabled: Boolean get() = fsr1 != Fsr1Preset.Disabled
     val multidrawOrderingActive: Boolean get() = multidrawEngine.usesBackendOrdering

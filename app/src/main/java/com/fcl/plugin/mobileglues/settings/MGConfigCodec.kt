@@ -21,6 +21,7 @@ internal object MGConfigCodec {
     private const val KEY_EXT_COMPUTE_SHADER = "enableExtComputeShader"
     private const val KEY_EXT_DIRECT_STATE_ACCESS = "enableExtDirectStateAccess"
     private const val KEY_EXT_GL43 = "enableExtGL43"
+    private const val KEY_DISABLE_COMPUTE_WEAK_GPU = "disableComputeOnWeakGpu"
     private const val KEY_GLSL_CACHE = "maxGlslCacheSize"
 
     // ── MultiDraw ────────────────────────────────────────────────────────
@@ -69,6 +70,7 @@ internal object MGConfigCodec {
         KEY_EXT_COMPUTE_SHADER,
         KEY_EXT_DIRECT_STATE_ACCESS,
         KEY_EXT_GL43,
+        KEY_DISABLE_COMPUTE_WEAK_GPU,
         KEY_GLSL_CACHE,
         KEY_MULTIDRAW_LEGACY,
         KEY_MULTIDRAW_DISABLE_LEGACY,
@@ -157,6 +159,8 @@ internal object MGConfigCodec {
             addProperty(KEY_EXT_COMPUTE_SHADER, config.extComputeShader.wire)
             addProperty(KEY_EXT_DIRECT_STATE_ACCESS, config.extDirectStateAccess.wire)
             addProperty(KEY_EXT_GL43, config.enableExtGL43.wire)
+            addProperty(KEY_DISABLE_COMPUTE_WEAK_GPU, config.disableComputeOnWeakGpu.wire)
+        KEY_DISABLE_COMPUTE_WEAK_GPU,
             addProperty(KEY_GLSL_CACHE, config.glslCache.wire)
             addProperty(KEY_DEPTH_CLEAR_FIX, config.depthClearFix.wire)
             addProperty(KEY_GL_VERSION, config.glVersion.wire)

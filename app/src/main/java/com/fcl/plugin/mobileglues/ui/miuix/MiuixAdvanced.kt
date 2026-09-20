@@ -55,6 +55,11 @@ fun MiuixAdvancedSection(controller: AppController, config: MGConfig) {
             checked = config.forceGlGetErrorSkip,
             onCheckedChange = { v -> controller.configStore.update { it.copy(forceGlGetErrorSkip = v) } },
         )
+        MiuixSwitchRow(
+            title = "Disable compute on weak GPU",
+            checked = config.disableComputeOnWeakGpu,
+            onCheckedChange = { v -> controller.configStore.update { it.copy(disableComputeOnWeakGpu = v) } },
+        )
         MiuixDropdownRow(
             title = stringResource(R.string.option_buffer_upload_mode),
             options = BufferUploadMode.entries.map { it.label(context).toString() },
