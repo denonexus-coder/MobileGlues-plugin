@@ -319,6 +319,7 @@ data class MGConfig(
     val extTimerQuery: Boolean = true,
     val extDirectStateAccess: Boolean = false,
     val fsr1: Fsr1Preset = Fsr1Preset.Disabled,
+    val fsr1Sharpness: Float = 0.75f,
     val multidrawEngine: MultidrawEngine = MultidrawEngine.Legacy,
     val enableVMDI: Boolean = false,
     val enableIMDBI: Boolean = false,

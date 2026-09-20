@@ -8,6 +8,8 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
+import java.util.Locale
+import kotlin.math.roundToInt
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -171,6 +173,22 @@ private fun ConfigSections(controller: AppController, config: MGConfig) {
                 checked = config.fsr1Enabled,
                 onCheckedChange = controller::setFsr1,
             )
+            AnimatedVisibility(
+                visible = config.fsr1Enabled,
+                enter = expandVertically() + fadeIn(),
+                exit = shrinkVertically() + fadeOut(),
+            ) {
+                MiuixSliderRow(
+                    title = stringResource(R.string.option_fsr1_sharpness),
+                    valueLabel = String.format(Locale.US, "%.2f", config.fsr1Sharpness),
+                    position = (config.fsr1Sharpness * 100).roundToInt(),
+                    steps = 100,
+                    onPositionChange = { pos ->
+                        controller.configStore.update { it.copy(fsr1Sharpness = pos / 100f) }
+                    },
+                    onDragFinished = {},
+                )
+            }
         }
 
         MiuixGroup(title = stringResource(R.string.settings_group_cache)) {

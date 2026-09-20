@@ -342,4 +342,7 @@ Please note, this action is <b><font color="@colorError">irreversible</font></b>
     <!-- Program Binary Cache -->
     <string name="option_program_binary_cache">Program Binary Cache</string>
     <string name="option_program_binary_cache_desc">Cache compiled GPU program binaries on disk to reduce shader compilation stutter</string>
+
+    <string name="option_fsr1_sharpness">FSR1 sharpness</string>
+    <string name="option_fsr1_sharpness_value">%1$.2f</string>
 </resources>

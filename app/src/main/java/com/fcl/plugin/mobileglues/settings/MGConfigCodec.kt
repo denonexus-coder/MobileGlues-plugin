@@ -35,6 +35,7 @@ internal object MGConfigCodec {
     private const val KEY_DEPTH_CLEAR_FIX = "angleDepthClearFixMode"
     private const val KEY_GL_VERSION = "customGLVersion"
     private const val KEY_FSR1 = "fsr1Setting"
+    private const val KEY_FSR1_SHARPNESS = "fsr1Sharpness"
 
     // ── Avançado (novos v3) ──────────────────────────────────────────────
     private const val KEY_HIDE_MG_ENV = "hideMGEnvLevel"
@@ -72,6 +73,7 @@ internal object MGConfigCodec {
         KEY_DEPTH_CLEAR_FIX,
         KEY_GL_VERSION,
         KEY_FSR1,
+        KEY_FSR1_SHARPNESS,
         KEY_MULTIDRAW_ENGINE,
         KEY_ENABLE_VMDI,
         KEY_ENABLE_IMDBI,
@@ -108,6 +110,7 @@ internal object MGConfigCodec {
             extTimerQuery = root.boolOrNull(KEY_EXT_TIMER_QUERY) ?: defaults.extTimerQuery,
             extDirectStateAccess = root.boolOrNull(KEY_EXT_DIRECT_STATE_ACCESS) ?: defaults.extDirectStateAccess,
             fsr1 = Fsr1Preset.entries.fromWire(root.intOrNull(KEY_FSR1), defaults.fsr1),
+            fsr1Sharpness = root.floatOrNull(KEY_FSR1_SHARPNESS) ?: defaults.fsr1Sharpness,
             multidrawEngine = MultidrawEngine.fromKey(root.stringOrNull(KEY_MULTIDRAW_ENGINE)),
             enableVMDI = root.boolOrNull(KEY_ENABLE_VMDI) ?: defaults.enableVMDI,
             enableIMDBI = root.boolOrNull(KEY_ENABLE_IMDBI) ?: defaults.enableIMDBI,
@@ -149,6 +152,7 @@ internal object MGConfigCodec {
             addProperty(KEY_DEPTH_CLEAR_FIX, config.depthClearFix.wire)
             addProperty(KEY_GL_VERSION, config.glVersion.wire)
             addProperty(KEY_FSR1, config.fsr1.wire)
+            addProperty(KEY_FSR1_SHARPNESS, config.fsr1Sharpness)
             addProperty(KEY_MULTIDRAW_ENGINE, config.multidrawEngine.key)
             addProperty(KEY_ENABLE_VMDI, config.enableVMDI.wire)
             addProperty(KEY_ENABLE_IMDBI, config.enableIMDBI.wire)
@@ -274,6 +278,16 @@ internal object MGConfigCodec {
         val primitive = element.asJsonPrimitive
         return runCatching {
             if (primitive.isNumber) primitive.asInt else primitive.asString.trim().toInt()
+        }.getOrNull()
+    }
+
+    private fun JsonObject.floatOrNull(key: String): Float? {
+        val element = get(key) ?: return null
+        if (!element.isJsonPrimitive) return null
+        val primitive = element.asJsonPrimitive
+        return runCatching {
+            if (primitive.isNumber) primitive.asFloat
+            else primitive.asString.trim().toFloat()
         }.getOrNull()
     }
 
