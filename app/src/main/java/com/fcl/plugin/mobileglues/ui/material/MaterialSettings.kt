@@ -163,16 +163,56 @@ private fun ConfigSections(controller: AppController, config: MGConfig) {
                 enter = expandVertically() + fadeIn(),
                 exit = shrinkVertically() + fadeOut(),
             ) {
-                SliderPreferenceRow(
-                    title = stringResource(R.string.option_fsr1_sharpness),
-                    valueLabel = String.format(Locale.US, "%.2f", config.fsr1Sharpness),
-                    position = (config.fsr1Sharpness * 100).roundToInt(),
-                    steps = 100,
-                    onPositionChange = { pos ->
-                        controller.configStore.update { it.copy(fsr1Sharpness = pos / 100f) }
-                    },
-                    onDragFinished = {},
-                )
+                Column {
+                    TextPreferenceRow(
+                        title = stringResource(R.string.option_fsr1_version),
+                        summary = when (config.fsr1Version) {
+                            1 -> stringResource(R.string.option_fsr1_version_1)
+                            else -> stringResource(R.string.option_fsr1_version_2)
+                        },
+                        onClick = { choice = ChoiceTarget.Fsr1Version },
+                    )
+                    SwitchPreferenceRow(
+                        title = stringResource(R.string.option_fsr_enable_sharpening),
+                        summary = stringResource(R.string.option_fsr_enable_sharpening_desc),
+                        checked = config.fsrEnableSharpening,
+                        onCheckedChange = { v ->
+                            controller.configStore.update { it.copy(fsrEnableSharpening = v) }
+                        },
+                    )
+                    AnimatedVisibility(
+                        visible = config.fsrEnableSharpening && config.fsr1Version == 1,
+                        enter = expandVertically() + fadeIn(),
+                        exit = shrinkVertically() + fadeOut(),
+                    ) {
+                        SliderPreferenceRow(
+                            title = stringResource(R.string.option_fsr1_sharpness),
+                            valueLabel = String.format(Locale.US, "%.2f", config.fsr1Sharpness),
+                            position = (config.fsr1Sharpness * 100).roundToInt(),
+                            steps = 100,
+                            onPositionChange = { pos ->
+                                controller.configStore.update { it.copy(fsr1Sharpness = pos / 100f) }
+                            },
+                            onDragFinished = {},
+                        )
+                    }
+                    AnimatedVisibility(
+                        visible = config.fsrEnableSharpening && config.fsr1Version == 2,
+                        enter = expandVertically() + fadeIn(),
+                        exit = shrinkVertically() + fadeOut(),
+                    ) {
+                        SliderPreferenceRow(
+                            title = stringResource(R.string.option_fsr2_sharpness),
+                            valueLabel = String.format(Locale.US, "%.2f", config.fsr2Sharpness),
+                            position = (config.fsr2Sharpness * 100).roundToInt(),
+                            steps = 100,
+                            onPositionChange = { pos ->
+                                controller.configStore.update { it.copy(fsr2Sharpness = pos / 100f) }
+                            },
+                            onDragFinished = {},
+                        )
+                    }
+                }
             }
         }
 
@@ -293,6 +333,24 @@ private fun ConfigSections(controller: AppController, config: MGConfig) {
             onDismiss = { choice = null },
         )
 
+        ChoiceTarget.Fsr1Version -> {
+            val options = listOf(1, 2)
+            val labels = listOf(
+                stringResource(R.string.option_fsr1_version_1),
+                stringResource(R.string.option_fsr1_version_2)
+            )
+            SingleChoiceDialog(
+                title = stringResource(R.string.option_fsr1_version),
+                options = labels,
+                selectedIndex = options.indexOf(config.fsr1Version).takeIf { it >= 0 } ?: 1,
+                onSelect = { i ->
+                    controller.configStore.update { it.copy(fsr1Version = options[i]) }
+                    choice = null
+                },
+                onDismiss = { choice = null }
+            )
+        }
+
         null -> Unit
     }
 
@@ -349,4 +407,4 @@ private fun <T : SpinnerOption> OptionDialog(
     )
 }
 
-private enum class ChoiceTarget { Angle, NoError, DepthClear, GlVersion, MultidrawEngine }
+private enum class ChoiceTarget { Angle, NoError, DepthClear, GlVersion, MultidrawEngine, Fsr1Version }

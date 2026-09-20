@@ -345,4 +345,10 @@ Please note, this action is <b><font color="@colorError">irreversible</font></b>
 
     <string name="option_fsr1_sharpness">FSR1 sharpness</string>
     <string name="option_fsr1_sharpness_value">%1$.2f</string>
+    <string name="option_fsr1_version">FSR version</string>
+    <string name="option_fsr1_version_1">FSR1 (5-tap, sharper)</string>
+    <string name="option_fsr1_version_2">FSR2 (3-tap, faster)</string>
+    <string name="option_fsr2_sharpness">FSR2 sharpness</string>
+    <string name="option_fsr_enable_sharpening">Enable sharpening</string>
+    <string name="option_fsr_enable_sharpening_desc">Off = pure blit, no sharpening</string>
 </resources>

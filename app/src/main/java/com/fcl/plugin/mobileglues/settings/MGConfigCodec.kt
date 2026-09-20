@@ -36,6 +36,9 @@ internal object MGConfigCodec {
     private const val KEY_GL_VERSION = "customGLVersion"
     private const val KEY_FSR1 = "fsr1Setting"
     private const val KEY_FSR1_SHARPNESS = "fsr1Sharpness"
+    private const val KEY_FSR1_VERSION    = "fsr1Version"
+    private const val KEY_FSR2_SHARPNESS  = "fsr2Sharpness"
+    private const val KEY_FSR_ENABLE_SHARP = "fsrEnableSharpening"
 
     // ── Avançado (novos v3) ──────────────────────────────────────────────
     private const val KEY_HIDE_MG_ENV = "hideMGEnvLevel"
@@ -74,6 +77,9 @@ internal object MGConfigCodec {
         KEY_GL_VERSION,
         KEY_FSR1,
         KEY_FSR1_SHARPNESS,
+        KEY_FSR1_VERSION,
+        KEY_FSR2_SHARPNESS,
+        KEY_FSR_ENABLE_SHARP,
         KEY_MULTIDRAW_ENGINE,
         KEY_ENABLE_VMDI,
         KEY_ENABLE_IMDBI,
@@ -111,6 +117,9 @@ internal object MGConfigCodec {
             extDirectStateAccess = root.boolOrNull(KEY_EXT_DIRECT_STATE_ACCESS) ?: defaults.extDirectStateAccess,
             fsr1 = Fsr1Preset.entries.fromWire(root.intOrNull(KEY_FSR1), defaults.fsr1),
             fsr1Sharpness = root.floatOrNull(KEY_FSR1_SHARPNESS) ?: defaults.fsr1Sharpness,
+            fsr1Version = root.intOrNull(KEY_FSR1_VERSION) ?: 2,
+            fsr2Sharpness = root.floatOrNull(KEY_FSR2_SHARPNESS) ?: 0.5f,
+            fsrEnableSharpening = root.boolOrNull(KEY_FSR_ENABLE_SHARP) ?: true,
             multidrawEngine = MultidrawEngine.fromKey(root.stringOrNull(KEY_MULTIDRAW_ENGINE)),
             enableVMDI = root.boolOrNull(KEY_ENABLE_VMDI) ?: defaults.enableVMDI,
             enableIMDBI = root.boolOrNull(KEY_ENABLE_IMDBI) ?: defaults.enableIMDBI,
@@ -153,6 +162,9 @@ internal object MGConfigCodec {
             addProperty(KEY_GL_VERSION, config.glVersion.wire)
             addProperty(KEY_FSR1, config.fsr1.wire)
             addProperty(KEY_FSR1_SHARPNESS, config.fsr1Sharpness)
+            addProperty(KEY_FSR1_VERSION, config.fsr1Version)
+            addProperty(KEY_FSR2_SHARPNESS, config.fsr2Sharpness)
+            addProperty(KEY_FSR_ENABLE_SHARP, config.fsrEnableSharpening.wire)
             addProperty(KEY_MULTIDRAW_ENGINE, config.multidrawEngine.key)
             addProperty(KEY_ENABLE_VMDI, config.enableVMDI.wire)
             addProperty(KEY_ENABLE_IMDBI, config.enableIMDBI.wire)
