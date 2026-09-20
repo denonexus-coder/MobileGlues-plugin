@@ -44,6 +44,16 @@ internal object MGConfigCodec {
     private const val KEY_MAX_ANISOTROPY = "maxAnisotropyOverride"
     private const val KEY_FORCE_DEPTH_PRECISION_FIX = "forceDepthPrecisionFix"
 
+    // ── Fase 3B — Submodes IMDBI / VMDI ──────────────────────────────────
+    private const val KEY_IMDBI_BACKEND = "imdbiBackend"
+    private const val KEY_IMDBI_UNROLL = "imdbiUnrollFactor"
+    private const val KEY_IMDBI_PERSIST = "imdbiPersistentMapping"
+    private const val KEY_IMDBI_PINNING = "imdbiRegisterPinning"
+    private const val KEY_IMDBI_RESTART = "imdbiPrimitiveRestart"
+    private const val KEY_IMDBI_RING = "imdbiRingSize"
+    private const val KEY_VMDI_TIER = "vmdiBackendTier"
+    private const val KEY_VMDI_AUTOTUNE = "vmdiEnableAutotune"
+
     // ── Layer 3 — Debug ──────────────────────────────────────────────────
     private const val KEY_DIAG = "diag"
 
@@ -70,6 +80,14 @@ internal object MGConfigCodec {
         KEY_TEXTURE_SWIZZLE,
         KEY_MAX_ANISOTROPY,
         KEY_FORCE_DEPTH_PRECISION_FIX,
+        KEY_IMDBI_BACKEND,
+        KEY_IMDBI_UNROLL,
+        KEY_IMDBI_PERSIST,
+        KEY_IMDBI_PINNING,
+        KEY_IMDBI_RESTART,
+        KEY_IMDBI_RING,
+        KEY_VMDI_TIER,
+        KEY_VMDI_AUTOTUNE,
         KEY_DIAG,
     ) + MultidrawEntry.entries.flatMap { listOf(it.orderKey, it.legacyModeKey) }
 
@@ -102,6 +120,16 @@ internal object MGConfigCodec {
             maxAnisotropyOverride = MaxAnisotropyOverride.fromWire(root.intOrNull(KEY_MAX_ANISOTROPY)),
             forceDepthPrecisionFix = root.boolOrNull(KEY_FORCE_DEPTH_PRECISION_FIX) ?: defaults.forceDepthPrecisionFix,
             diag = decodeDiag(root.getAsJsonObject(KEY_DIAG)),
+
+            // ── Fase 3B — Submodes IMDBI / VMDI ──
+            imdbiBackend = ImdbiBackend.fromKey(root.stringOrNull(KEY_IMDBI_BACKEND)),
+            imdbiUnrollFactor = root.intOrNull(KEY_IMDBI_UNROLL) ?: 4,
+            imdbiPersistentMapping = root.boolOrNull(KEY_IMDBI_PERSIST) ?: true,
+            imdbiRegisterPinning = root.boolOrNull(KEY_IMDBI_PINNING) ?: true,
+            imdbiPrimitiveRestart = root.boolOrNull(KEY_IMDBI_RESTART) ?: true,
+            imdbiRingSizeKb = root.intOrNull(KEY_IMDBI_RING) ?: 4096,
+            vmdiBackendTier = VmdiBackendTier.fromKey(root.stringOrNull(KEY_VMDI_TIER)),
+            vmdiEnableAutotune = root.boolOrNull(KEY_VMDI_AUTOTUNE) ?: true,
         )
     }
 
@@ -130,6 +158,16 @@ internal object MGConfigCodec {
             addProperty(KEY_MAX_ANISOTROPY, config.maxAnisotropyOverride.wire)
             addProperty(KEY_FORCE_DEPTH_PRECISION_FIX, config.forceDepthPrecisionFix.wire)
             add(KEY_DIAG, encodeDiag(config.diag))
+
+            // ── Fase 3B — Submodes IMDBI / VMDI ──
+            addProperty(KEY_IMDBI_BACKEND, config.imdbiBackend.key)
+            addProperty(KEY_IMDBI_UNROLL, config.imdbiUnrollFactor)
+            addProperty(KEY_IMDBI_PERSIST, config.imdbiPersistentMapping.wire)
+            addProperty(KEY_IMDBI_PINNING, config.imdbiRegisterPinning.wire)
+            addProperty(KEY_IMDBI_RESTART, config.imdbiPrimitiveRestart.wire)
+            addProperty(KEY_IMDBI_RING, config.imdbiRingSizeKb)
+            addProperty(KEY_VMDI_TIER, config.vmdiBackendTier.key)
+            addProperty(KEY_VMDI_AUTOTUNE, config.vmdiEnableAutotune.wire)
 
             encodeMultidraw(config.multidraw)
         }

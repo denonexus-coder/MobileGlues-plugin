@@ -332,9 +332,48 @@ data class MGConfig(
     val maxAnisotropyOverride: MaxAnisotropyOverride = MaxAnisotropyOverride.Default,
     val forceDepthPrecisionFix: Boolean = false,
     val diag: DiagConfig = DiagConfig(),
+
+    // ── Fase 3B — Submodes IMDBI / VMDI ──────────────────────────────────
+    val imdbiBackend: ImdbiBackend = ImdbiBackend.FastIndirectRing,
+    val imdbiUnrollFactor: Int = 4,
+    val imdbiPersistentMapping: Boolean = true,
+    val imdbiRegisterPinning: Boolean = true,
+    val imdbiPrimitiveRestart: Boolean = true,
+    val imdbiRingSizeKb: Int = 4096,
+    val vmdiBackendTier: VmdiBackendTier = VmdiBackendTier.Auto,
+    val vmdiEnableAutotune: Boolean = true,
 ) {
     val fsr1Enabled: Boolean get() = fsr1 != Fsr1Preset.Disabled
     val multidrawOrderingActive: Boolean get() = multidrawEngine.usesBackendOrdering
 
     companion object { val Default = MGConfig() }
+}
+
+enum class ImdbiBackend(val key: String, @StringRes private val labelRes: Int) {
+    Stitching("stitching", R.string.option_imdbi_stitching),
+    FastIndirectRing("fast_indirect_ring", R.string.option_imdbi_fast_ring),
+    UnrolledLoop("unrolled_loop", R.string.option_imdbi_unrolled),
+    ComputeDispatch("compute_dispatch", R.string.option_imdbi_compute);
+
+    fun label(context: Context): CharSequence = context.getString(labelRes)
+
+    companion object {
+        fun fromKey(key: String?): ImdbiBackend =
+            entries.firstOrNull { it.key.equals(key, ignoreCase = true) } ?: FastIndirectRing
+    }
+}
+
+enum class VmdiBackendTier(val key: String, @StringRes private val labelRes: Int) {
+    Auto("auto", R.string.option_vmdi_auto),
+    NativeMdi("native_mdi", R.string.option_vmdi_native),
+    MultiBaseVertex("multi_base_vertex", R.string.option_vmdi_basevertex),
+    IndirectUnrolled("indirect_unrolled", R.string.option_vmdi_indirect),
+    DirectFallback("direct_fallback", R.string.option_vmdi_fallback);
+
+    fun label(context: Context): CharSequence = context.getString(labelRes)
+
+    companion object {
+        fun fromKey(key: String?): VmdiBackendTier =
+            entries.firstOrNull { it.key.equals(key, ignoreCase = true) } ?: Auto
+    }
 }

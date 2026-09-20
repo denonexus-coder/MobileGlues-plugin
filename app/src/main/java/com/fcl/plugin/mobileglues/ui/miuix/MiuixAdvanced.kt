@@ -20,9 +20,12 @@ import androidx.compose.ui.unit.dp
 import com.fcl.plugin.mobileglues.R
 import com.fcl.plugin.mobileglues.settings.BufferUploadMode
 import com.fcl.plugin.mobileglues.settings.HideMGEnvLevel
+import com.fcl.plugin.mobileglues.settings.ImdbiBackend
 import com.fcl.plugin.mobileglues.settings.MGConfig
 import com.fcl.plugin.mobileglues.settings.MaxAnisotropyOverride
+import com.fcl.plugin.mobileglues.settings.MultidrawEngine
 import com.fcl.plugin.mobileglues.settings.TextureSwizzleMode
+import com.fcl.plugin.mobileglues.settings.VmdiBackendTier
 import com.fcl.plugin.mobileglues.ui.AppController
 import kotlin.math.roundToInt
 import top.yukonga.miuix.kmp.basic.Slider
@@ -81,6 +84,92 @@ fun MiuixAdvancedSection(controller: AppController, config: MGConfig) {
             checked = config.forceDepthPrecisionFix,
             onCheckedChange = { v -> controller.configStore.update { it.copy(forceDepthPrecisionFix = v) } },
         )
+    }
+}
+
+/** Seções condicionais IMDBI / VMDI (Fase 3B) — espelho Miuix. Aparecem apenas com o engine correspondente. */
+@Composable
+fun MiuixEngineSubmodesSection(controller: AppController, config: MGConfig) {
+    val context = LocalContext.current
+
+    // ── IMDBI submodes ────────────────────────────────────────────────────
+    AnimatedVisibility(
+        visible = config.multidrawEngine == MultidrawEngine.Imdbi,
+        enter = expandVertically() + fadeIn(),
+        exit = shrinkVertically() + fadeOut(),
+    ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            MiuixGroup(title = stringResource(R.string.settings_group_imdbi_submodes)) {
+                MiuixDropdownRow(
+                    title = stringResource(R.string.option_imdbi_backend),
+                    options = ImdbiBackend.entries.map { it.label(context).toString() },
+                    selectedIndex = ImdbiBackend.entries.indexOf(config.imdbiBackend),
+                    onSelect = { i ->
+                        controller.configStore.update { it.copy(imdbiBackend = ImdbiBackend.entries[i]) }
+                    },
+                )
+                MiuixDropdownRow(
+                    title = stringResource(R.string.option_imdbi_unroll_factor),
+                    options = listOf("4×", "8×"),
+                    selectedIndex = if (config.imdbiUnrollFactor == 8) 1 else 0,
+                    onSelect = { i ->
+                        controller.configStore.update { it.copy(imdbiUnrollFactor = if (i == 1) 8 else 4) }
+                    },
+                )
+                MiuixSwitchRow(
+                    title = stringResource(R.string.option_imdbi_persistent),
+                    checked = config.imdbiPersistentMapping,
+                    onCheckedChange = { v ->
+                        controller.configStore.update { it.copy(imdbiPersistentMapping = v) }
+                    },
+                )
+                MiuixSwitchRow(
+                    title = stringResource(R.string.option_imdbi_pinning),
+                    checked = config.imdbiRegisterPinning,
+                    onCheckedChange = { v ->
+                        controller.configStore.update { it.copy(imdbiRegisterPinning = v) }
+                    },
+                )
+                MiuixSwitchRow(
+                    title = stringResource(R.string.option_imdbi_restart),
+                    checked = config.imdbiPrimitiveRestart,
+                    onCheckedChange = { v ->
+                        controller.configStore.update { it.copy(imdbiPrimitiveRestart = v) }
+                    },
+                )
+                MiuixTextRow(
+                    title = stringResource(R.string.option_imdbi_ring),
+                    summary = "${config.imdbiRingSizeKb} KiB",
+                )
+            }
+        }
+    }
+
+    // ── VMDI submodes ─────────────────────────────────────────────────────
+    AnimatedVisibility(
+        visible = config.multidrawEngine == MultidrawEngine.Vmdi,
+        enter = expandVertically() + fadeIn(),
+        exit = shrinkVertically() + fadeOut(),
+    ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            MiuixGroup(title = stringResource(R.string.settings_group_vmdi_submodes)) {
+                MiuixDropdownRow(
+                    title = stringResource(R.string.option_vmdi_tier),
+                    options = VmdiBackendTier.entries.map { it.label(context).toString() },
+                    selectedIndex = VmdiBackendTier.entries.indexOf(config.vmdiBackendTier),
+                    onSelect = { i ->
+                        controller.configStore.update { it.copy(vmdiBackendTier = VmdiBackendTier.entries[i]) }
+                    },
+                )
+                MiuixSwitchRow(
+                    title = stringResource(R.string.option_vmdi_autotune),
+                    checked = config.vmdiEnableAutotune,
+                    onCheckedChange = { v ->
+                        controller.configStore.update { it.copy(vmdiEnableAutotune = v) }
+                    },
+                )
+            }
+        }
     }
 }
 

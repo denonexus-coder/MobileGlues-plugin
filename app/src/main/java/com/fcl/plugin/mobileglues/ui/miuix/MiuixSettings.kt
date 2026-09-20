@@ -237,6 +237,7 @@ private fun ConfigSections(controller: AppController, config: MGConfig) {
     }
 
     MiuixAdvancedSection(controller, config)
+    MiuixEngineSubmodesSection(controller, config)
     MiuixDebugSection(controller, config)
 
 }

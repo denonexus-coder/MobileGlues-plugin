@@ -220,6 +220,7 @@ private fun ConfigSections(controller: AppController, config: MGConfig) {
     }
 
     MaterialAdvancedSection(controller, config)
+    MaterialEngineSubmodesSection(controller, config)
     MaterialDebugSection(controller, config)
 
 
