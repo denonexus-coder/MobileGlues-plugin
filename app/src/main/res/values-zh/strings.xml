@@ -244,4 +244,23 @@
     <string name="sponsor_confirm_msg">如果刚才已经捐赠了，点「已捐赠」，我们就不再提醒；没有的话也没关系哦~</string>
     <string name="sponsor_action_donated">已捐赠</string>
     <string name="sponsor_action_not_yet">还没有</string>
+
+    <string name="option_no_error_none">不忽略</string>
+    <string name="option_no_error_partial">部分忽略</string>
+    <string name="option_no_error_full">完全忽略</string>
+
+    <string name="option_angle_clear_workaround_enable_2">模式 2</string>
+
+    <string name="option_buffer_upload_streaming">流式</string>
+    <string name="option_buffer_upload_persistent">持久</string>
+    <string name="option_buffer_upload_ring">环形</string>
+
+    <string name="option_texture_swizzle_rgba">RGBA</string>
+    <string name="option_texture_swizzle_bgra">BGRA</string>
+
+    <string name="diag_log_level_info">信息</string>
+    <string name="diag_log_level_debug">调试</string>
+    <string name="diag_log_level_trace">跟踪</string>
+    <string name="diag_log_level_error">错误</string>
+
 </resources>

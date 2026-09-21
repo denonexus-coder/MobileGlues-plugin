@@ -351,4 +351,28 @@ Please note, this action is <b><font color="@colorError">irreversible</font></b>
     <string name="option_fsr2_sharpness">FSR2 sharpness</string>
     <string name="option_fsr_enable_sharpening">Enable sharpening</string>
     <string name="option_fsr_enable_sharpening_desc">Off = pure blit, no sharpening</string>
+
+    <!-- NoErrorConfig (schema v3 rename) -->
+    <string name="option_no_error_none">Nenhum</string>
+    <string name="option_no_error_partial">Parcial</string>
+    <string name="option_no_error_full">Completo</string>
+
+    <!-- DepthClearFixMode -->
+    <string name="option_angle_clear_workaround_enable_2">Modo 2</string>
+
+    <!-- BufferUploadMode (schema v3 rename) -->
+    <string name="option_buffer_upload_streaming">Streaming</string>
+    <string name="option_buffer_upload_persistent">Persistente</string>
+    <string name="option_buffer_upload_ring">Anel</string>
+
+    <!-- TextureSwizzleMode (schema v3 rename) -->
+    <string name="option_texture_swizzle_rgba">RGBA</string>
+    <string name="option_texture_swizzle_bgra">BGRA</string>
+
+    <!-- DiagLogLevel -->
+    <string name="diag_log_level_info">Info</string>
+    <string name="diag_log_level_debug">Debug</string>
+    <string name="diag_log_level_trace">Trace</string>
+    <string name="diag_log_level_error">Erro</string>
+
 </resources>
