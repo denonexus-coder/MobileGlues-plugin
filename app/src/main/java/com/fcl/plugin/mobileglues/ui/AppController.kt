@@ -21,7 +21,6 @@ import com.fcl.plugin.mobileglues.settings.AuthMethod
 import com.fcl.plugin.mobileglues.settings.ConfigLoadResult
 import com.fcl.plugin.mobileglues.settings.ConfigStoreEvent
 import com.fcl.plugin.mobileglues.settings.DepthClearFixMode
-import com.fcl.plugin.mobileglues.settings.Fsr1Preset
 import com.fcl.plugin.mobileglues.settings.GlVersion
 import com.fcl.plugin.mobileglues.settings.GlslCacheScale
 import com.fcl.plugin.mobileglues.settings.GlslCacheSize
@@ -493,9 +492,9 @@ class AppController(
         val current = configStore.config.value ?: return
         if (enabled == current.fsr1Enabled) return
         if (enabled) {
-            confirmThenUpdate(R.string.warning_fsr1_enable) { it.copy(fsr1 = Fsr1Preset.UltraQuality) }
+            confirmThenUpdate(R.string.warning_fsr1_enable) { it.copy(fsrEnableSharpening = true) }
         } else {
-            update { it.copy(fsr1 = Fsr1Preset.Disabled) }
+            update { it.copy(fsrEnableSharpening = false) }
         }
     }
 
