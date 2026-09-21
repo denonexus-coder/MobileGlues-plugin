@@ -203,7 +203,6 @@
     <string name="settings_group_cache">着色器缓存</string>
     <string name="settings_group_ext">扩展</string>
     <string name="settings_group_advanced">高级</string>
-    <string name="ui_style">界面风格</string>
 
     <string name="info_section_app">应用</string>
     <string name="info_section_about">关于</string>

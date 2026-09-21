@@ -7,23 +7,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
-/** 界面皮肤。 */
-enum class UiStyle(val key: String) {
-    Material("material"),
-    Miuix("miuix");
-
-    companion object {
-        fun ofKey(key: String?): UiStyle = entries.firstOrNull { it.key == key } ?: Material
-
-        /**
-         * 没选过时给哪一套。小米自家系统上给 Miuix——那里它和系统本身是同一种长相。
-         *
-         * 只是默认值：一旦用户在设置里选过，存下来的那个选择永远优先，包括 HyperOS 上
-         * 主动选了 Material 的用户。
-         */
-        fun default(): UiStyle = if (SystemUi.isMiuiOrHyperOs) Miuix else Material
-    }
-}
 
 /** 用户选择的存储授权方式。 */
 enum class AuthMethod(val key: String) {
@@ -66,18 +49,6 @@ class PluginConfigStore(context: Context) {
 
     private val prefs: SharedPreferences =
         context.applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-
-    // 区分「没选过」和「选了 material」：前者要跟随系统，后者是用户的明确意愿。
-    // prefs.getString 的 null 正好把两者分开，ofKey 做不到（它把 null 也答成 Material）。
-    private val mutableUiStyle = MutableStateFlow(
-        prefs.getString(KEY_UI_STYLE, null)?.let { UiStyle.ofKey(it) } ?: UiStyle.default(),
-    )
-    val uiStyle: StateFlow<UiStyle> = mutableUiStyle.asStateFlow()
-
-    fun setUiStyle(style: UiStyle) {
-        prefs.edit { putString(KEY_UI_STYLE, style.key) }
-        mutableUiStyle.value = style
-    }
 
     private val mutableAuthMethod =
         MutableStateFlow(AuthMethod.ofKey(prefs.getString(KEY_AUTH_METHOD, null)))
@@ -180,7 +151,6 @@ class PluginConfigStore(context: Context) {
 
     private companion object {
         const val PREFS_NAME = "plugin_config"
-        const val KEY_UI_STYLE = "ui_style"
         const val KEY_AUTH_METHOD = "auth_method"
         const val KEY_SAF_TREE_URI = "saf_tree_uri"
         const val KEY_LAST_SPONSOR_PROMPT_AT = "last_sponsor_prompt_at"

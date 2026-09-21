@@ -38,7 +38,6 @@ import com.fcl.plugin.mobileglues.settings.MultidrawEngine
 import com.fcl.plugin.mobileglues.settings.MGConfig
 import com.fcl.plugin.mobileglues.settings.NoErrorConfig
 import com.fcl.plugin.mobileglues.settings.SpinnerOption
-import com.fcl.plugin.mobileglues.settings.UiStyle
 import com.fcl.plugin.mobileglues.ui.AppController
 import com.fcl.plugin.mobileglues.ui.SettingsLoadState
 import top.yukonga.miuix.kmp.basic.Button
@@ -60,7 +59,6 @@ fun MiuixSettingsPage(controller: AppController) {
     val auth by controller.auth.state.collectAsStateWithLifecycle()
     val loadState by controller.loadState.collectAsStateWithLifecycle()
     val config by controller.configStore.config.collectAsStateWithLifecycle()
-    val uiStyle by controller.pluginConfig.uiStyle.collectAsStateWithLifecycle()
 
     LaunchedEffect(Unit) { controller.ensureDeviceInfo() }
 
@@ -72,26 +70,6 @@ fun MiuixSettingsPage(controller: AppController) {
             .verticalScroll(rememberScrollState()),
     ) {
         MiuixPageTitle(stringResource(R.string.nav_settings))
-
-        MiuixGroup(title = stringResource(R.string.settings_group_plugin)) {
-            Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)) {
-                Text(
-                    text = stringResource(R.string.ui_style),
-                    style = MiuixTheme.textStyles.body1,
-                    color = MiuixTheme.colorScheme.onSurface,
-                )
-                Spacer(Modifier.height(10.dp))
-                TabRowWithContour(
-                    tabs = listOf(
-                        stringResource(R.string.ui_style_material),
-                        stringResource(R.string.ui_style_miuix),
-                    ),
-                    selectedTabIndex = uiStyle.ordinal,
-                    onTabSelected = { controller.pluginConfig.setUiStyle(UiStyle.entries[it]) },
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
-        }
 
         Crossfade(
             targetState = auth.granted to (loadState == SettingsLoadState.Ready && config != null),

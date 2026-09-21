@@ -217,9 +217,6 @@ Please note, this action is <b><font color="@colorError">irreversible</font></b>
     <string name="settings_group_cache">Shader cache</string>
     <string name="settings_group_ext">Extensions</string>
     <string name="settings_group_advanced">Advanced</string>
-    <string name="ui_style">UI style</string>
-    <string name="ui_style_material" translatable="false">Material</string>
-    <string name="ui_style_miuix" translatable="false">Miuix</string>
 
     <string name="info_section_app">App</string>
     <string name="info_section_about">About</string>

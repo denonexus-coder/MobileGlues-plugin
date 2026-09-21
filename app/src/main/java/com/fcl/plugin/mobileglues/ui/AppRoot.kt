@@ -5,8 +5,6 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.LocalView
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.fcl.plugin.mobileglues.settings.UiStyle
-import com.fcl.plugin.mobileglues.ui.material.MaterialApp
 import com.fcl.plugin.mobileglues.ui.miuix.MiuixApp
 
 /**
@@ -15,7 +13,6 @@ import com.fcl.plugin.mobileglues.ui.miuix.MiuixApp
  */
 @Composable
 fun MobileGluesApp(controller: AppController) {
-    val style by controller.pluginConfig.uiStyle.collectAsStateWithLifecycle()
 
     // 跑分期间不许自动熄屏。一次跑分要到一分多钟，而全程没有任何触摸——正是系统认定
     // 「用户走开了」的样子。屏幕一灭，测的就不再是游戏里那块 GPU 的状态：合成停了、
@@ -33,8 +30,6 @@ fun MobileGluesApp(controller: AppController) {
         onDispose { view.keepScreenOn = false }
     }
 
-    when (style) {
-        UiStyle.Material -> MaterialApp(controller)
-        UiStyle.Miuix -> MiuixApp(controller)
-    }
+    // Single UI variant: Miuix. The Material skin has been removed.
+    MiuixApp(controller)
 }
