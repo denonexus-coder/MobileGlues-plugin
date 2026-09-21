@@ -144,21 +144,25 @@ fun MiuixEngineSubmodesSection(controller: AppController, config: MGConfig) {
                 )
                 // Ring size is a discrete enum (4 KiB, 4/8/16 MiB), not a
                 // continuous range — a dropdown, not a slider.
-                {
-                    val ringSizes = listOf(4096, 4 * 1024 * 1024, 8 * 1024 * 1024, 16 * 1024 * 1024)
-                    val ringLabels = ringSizes.map { bytes ->
-                        if (bytes < 1024 * 1024) "${bytes / 1024} KiB"
-                        else "${bytes / (1024 * 1024)} MiB"
-                    }
-                    MiuixDropdownRow(
-                        title = stringResource(R.string.option_imdbi_ring),
-                        options = ringLabels,
-                        selectedIndex = ringSizes.indexOf(config.imdbiRingSize).takeIf { it >= 0 } ?: 1,
-                        onSelect = { i ->
-                            controller.configStore.update { it.copy(imdbiRingSize = ringSizes[i]) }
-                        },
-                    )
-                }
+                MiuixDropdownRow(
+                    title = stringResource(R.string.option_imdbi_ring),
+                    options = listOf("4 KiB", "4 MiB", "8 MiB", "16 MiB"),
+                    selectedIndex = when (config.imdbiRingSize) {
+                        4096 -> 0
+                        8 * 1024 * 1024 -> 2
+                        16 * 1024 * 1024 -> 3
+                        else -> 1
+                    },
+                    onSelect = { i ->
+                        val newSize = when (i) {
+                            0 -> 4096
+                            2 -> 8 * 1024 * 1024
+                            3 -> 16 * 1024 * 1024
+                            else -> 4 * 1024 * 1024
+                        }
+                        controller.configStore.update { it.copy(imdbiRingSize = newSize) }
+                    },
+                )
             }
         }
     }
@@ -193,6 +197,7 @@ fun MiuixEngineSubmodesSection(controller: AppController, config: MGConfig) {
 
 @Composable
 fun MiuixDebugSection(controller: AppController, config: MGConfig) {
+    val context = LocalContext.current
     val diag = config.diag
 
     MiuixGroup(title = stringResource(R.string.settings_group_debug)) {
@@ -294,19 +299,22 @@ fun MiuixDebugSection(controller: AppController, config: MGConfig) {
                     },
                 )
                 // Log level: discrete enum, so a dropdown.
-                {
-                    val levels = com.fcl.plugin.mobileglues.settings.DiagLogLevel.entries
-                    MiuixDropdownRow(
-                        title = stringResource(R.string.diag_logging_level),
-                        options = levels.map { it.label(context).toString() },
-                        selectedIndex = levels.indexOf(diag.logging.level),
-                        onSelect = { i ->
-                            controller.configStore.update { c ->
-                                c.copy(diag = c.diag.copy(logging = c.diag.logging.copy(level = levels[i])))
-                            }
-                        },
-                    )
-                }
+                MiuixDropdownRow(
+                    title = stringResource(R.string.diag_logging_level),
+                    options = com.fcl.plugin.mobileglues.settings.DiagLogLevel.entries
+                        .map { it.label(context).toString() },
+                    selectedIndex = com.fcl.plugin.mobileglues.settings.DiagLogLevel.entries
+                        .indexOf(diag.logging.level),
+                    onSelect = { i ->
+                        controller.configStore.update { c ->
+                            c.copy(diag = c.diag.copy(
+                                logging = c.diag.logging.copy(
+                                    level = com.fcl.plugin.mobileglues.settings.DiagLogLevel.entries[i]
+                                )
+                            ))
+                        }
+                    },
+                )
             }
             MiuixGroup(title = stringResource(R.string.diag_perfetto_title)) {
                 MiuixSwitchRow(

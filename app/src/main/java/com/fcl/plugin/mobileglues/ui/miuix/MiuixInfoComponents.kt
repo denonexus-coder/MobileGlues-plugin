@@ -42,7 +42,7 @@ fun MiuixHintText(
         text = text,
         style = MiuixTheme.textStyles.footnote2,
         color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-        modifier = modifier.padding(horizontal = 16.dp, top = 2.dp, bottom = 4.dp),
+        modifier = modifier.padding(start = 16.dp, top = 2.dp, end = 16.dp, bottom = 4.dp),
     )
 }
 
@@ -60,7 +60,7 @@ fun MiuixWarnText(
         text = text,
         style = MiuixTheme.textStyles.footnote2,
         color = MiuixTheme.colorScheme.error,
-        modifier = modifier.padding(horizontal = 16.dp, top = 2.dp, bottom = 4.dp),
+        modifier = modifier.padding(start = 16.dp, top = 2.dp, end = 16.dp, bottom = 4.dp),
     )
 }
 
