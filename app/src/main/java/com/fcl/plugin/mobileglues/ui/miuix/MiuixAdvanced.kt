@@ -142,10 +142,23 @@ fun MiuixEngineSubmodesSection(controller: AppController, config: MGConfig) {
                         controller.configStore.update { it.copy(imdbiPrimitiveRestart = v) }
                     },
                 )
-                MiuixTextRow(
-                    title = stringResource(R.string.option_imdbi_ring),
-                    summary = "${config.imdbiRingSizeKb} KiB",
-                )
+                // Ring size is a discrete enum (4 KiB, 4/8/16 MiB), not a
+                // continuous range — a dropdown, not a slider.
+                {
+                    val ringSizes = listOf(4096, 4 * 1024 * 1024, 8 * 1024 * 1024, 16 * 1024 * 1024)
+                    val ringLabels = ringSizes.map { bytes ->
+                        if (bytes < 1024 * 1024) "${bytes / 1024} KiB"
+                        else "${bytes / (1024 * 1024)} MiB"
+                    }
+                    MiuixDropdownRow(
+                        title = stringResource(R.string.option_imdbi_ring),
+                        options = ringLabels,
+                        selectedIndex = ringSizes.indexOf(config.imdbiRingSize).takeIf { it >= 0 } ?: 1,
+                        onSelect = { i ->
+                            controller.configStore.update { it.copy(imdbiRingSize = ringSizes[i]) }
+                        },
+                    )
+                }
             }
         }
     }
@@ -280,6 +293,20 @@ fun MiuixDebugSection(controller: AppController, config: MGConfig) {
                         }
                     },
                 )
+                // Log level: discrete enum, so a dropdown.
+                {
+                    val levels = com.fcl.plugin.mobileglues.settings.DiagLogLevel.entries
+                    MiuixDropdownRow(
+                        title = stringResource(R.string.diag_logging_level),
+                        options = levels.map { it.label(context).toString() },
+                        selectedIndex = levels.indexOf(diag.logging.level),
+                        onSelect = { i ->
+                            controller.configStore.update { c ->
+                                c.copy(diag = c.diag.copy(logging = c.diag.logging.copy(level = levels[i])))
+                            }
+                        },
+                    )
+                }
             }
             MiuixGroup(title = stringResource(R.string.diag_perfetto_title)) {
                 MiuixSwitchRow(
