@@ -376,4 +376,12 @@ Please note, this action is <b><font color="@colorError">irreversible</font></b>
     <string name="settings_tab_compatibility">Compatibility</string>
     <string name="settings_tab_visual">Visual</string>
     <string name="settings_tab_tools">Tools</string>
+    <string name="home_section_status">Status</string>
+    <string name="home_section_device">Device</string>
+    <string name="home_section_actions">Quick actions</string>
+    <string name="home_row_multidraw">MultiDraw</string>
+    <string name="home_row_fsr">FSR</string>
+    <string name="home_row_cache">Shader cache</string>
+    <string name="home_value_on">On</string>
+    <string name="home_value_off">Off</string>
 </resources>
