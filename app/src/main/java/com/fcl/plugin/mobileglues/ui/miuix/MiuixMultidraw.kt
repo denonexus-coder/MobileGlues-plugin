@@ -1,5 +1,9 @@
 package com.fcl.plugin.mobileglues.ui.miuix
 
+import top.yukonga.miuix.kmp.basic.TabRowWithContour
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
@@ -80,8 +84,39 @@ fun miuixMultidrawSummary(settings: MultidrawSettings): String {
 }
 
 /** MultiDraw 排序设置（Miuix 版）：全局 8 项排序 + 每函数例外排序 + benchmark。 */
+/**
+ * MultiDraw — dividido em duas visões internas.
+ *
+ * Antes era um scroll único: a ordem global (que raramente muda) ficava
+ * intercalada com os cinco switches de exceção (onde o usuário passa 90% do
+ * tempo). Duas abas mantêm a mesma informação sem obrigar quem está tunando
+ * uma função a rolar por cima da lista global toda vez.
+ */
 @Composable
 fun ColumnScope.MiuixMultidrawOrderContent(controller: AppController, config: MGConfig) {
+    var tab by remember { mutableStateOf(0) }
+    val tabs = listOf(
+        stringResource(R.string.md_tab_global),
+        stringResource(R.string.md_tab_exceptions),
+    )
+
+    TabRowWithContour(
+        tabs = tabs,
+        selectedTabIndex = tab,
+        onTabSelected = { tab = it },
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 4.dp),
+    )
+
+    when (tab) {
+        0 -> MiuixMultidrawGlobalTab(controller, config)
+        1 -> MiuixMultidrawExceptionsTab(controller, config)
+    }
+}
+
+@Composable
+private fun MiuixMultidrawGlobalTab(controller: AppController, config: MGConfig) {
     val context = LocalContext.current
     val settings = config.multidraw
 
@@ -111,10 +146,14 @@ fun ColumnScope.MiuixMultidrawOrderContent(controller: AppController, config: MG
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
         )
     }
+}
 
-    // ---- 例外函数 ----
+@Composable
+private fun MiuixMultidrawExceptionsTab(controller: AppController, config: MGConfig) {
+    val context = LocalContext.current
+    val settings = config.multidraw
 
-    SmallTitle(text = stringResource(R.string.md_exceptions_group))
+    MiuixSectionHint(stringResource(R.string.md_exceptions_hint))
 
     // 跑分只测得出「这个函数上哪个方案快」，那就把结果按函数交出去，别硬合成一份全局顺序。
     TextButton(

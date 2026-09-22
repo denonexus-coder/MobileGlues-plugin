@@ -289,4 +289,7 @@
     <string name="hint_texture_swizzle">如果纹理颜色异常，强制 BGRA。Auto 交给驱动决定。</string>
     <string name="hint_diag_master">关闭时，下方所有诊断项均被忽略。开启时开销约为 0.5% 帧率。</string>
     <string name="warn_diag_perfetto">Perfetto 追踪开销较高，会明显耗电，请尽量缩短单次会话。</string>
+    <string name="md_tab_global">全局排序</string>
+    <string name="md_tab_exceptions">例外函数</string>
+    <string name="md_exceptions_hint">每个函数可以使用独立的排序。当跑分显示某个函数从与其他函数不同的后端受益时很有用。</string>
 </resources>

@@ -393,4 +393,7 @@ Please note, this action is <b><font color="@colorError">irreversible</font></b>
     <string name="hint_texture_swizzle">Force BGRA if textures look colour-inverted. Auto lets the driver decide.</string>
     <string name="hint_diag_master">When off, everything below is ignored. When on, the overhead is roughly 0.5% FPS.</string>
     <string name="warn_diag_perfetto">Perfetto tracing is heavy and drains the battery. Keep sessions short.</string>
+    <string name="md_tab_global">Global order</string>
+    <string name="md_tab_exceptions">Per-function exceptions</string>
+    <string name="md_exceptions_hint">Each function can use its own order. Useful when the benchmark shows one function benefits from a different backend than the others.</string>
 </resources>
