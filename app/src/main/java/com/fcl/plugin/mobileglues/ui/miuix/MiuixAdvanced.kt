@@ -18,79 +18,15 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.fcl.plugin.mobileglues.R
-import com.fcl.plugin.mobileglues.settings.BufferUploadMode
-import com.fcl.plugin.mobileglues.settings.HideMGEnvLevel
 import com.fcl.plugin.mobileglues.settings.ImdbiBackend
 import com.fcl.plugin.mobileglues.settings.MGConfig
-import com.fcl.plugin.mobileglues.settings.MaxAnisotropyOverride
 import com.fcl.plugin.mobileglues.settings.MultidrawEngine
-import com.fcl.plugin.mobileglues.settings.TextureSwizzleMode
 import com.fcl.plugin.mobileglues.settings.VmdiBackendTier
 import com.fcl.plugin.mobileglues.ui.AppController
 import kotlin.math.roundToInt
 import top.yukonga.miuix.kmp.basic.Slider
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
-
-@Composable
-fun MiuixAdvancedSection(controller: AppController, config: MGConfig) {
-    val context = LocalContext.current
-
-    MiuixGroup(title = stringResource(R.string.settings_group_advanced_ext)) {
-        MiuixDropdownRow(
-            title = stringResource(R.string.option_hide_mg_env_level),
-            options = HideMGEnvLevel.entries.map { it.label(context).toString() },
-            selectedIndex = HideMGEnvLevel.entries.indexOf(config.hideMGEnvLevel),
-            onSelect = { i ->
-                controller.configStore.update { it.copy(hideMGEnvLevel = HideMGEnvLevel.entries[i]) }
-            },
-        )
-        MiuixSwitchRow(
-            title = stringResource(R.string.option_ext_gl43),
-            checked = config.enableExtGL43,
-            onCheckedChange = { v -> controller.configStore.update { it.copy(enableExtGL43 = v) } },
-        )
-        MiuixSwitchRow(
-            title = stringResource(R.string.option_force_gl_get_error_skip),
-            checked = config.forceGlGetErrorSkip,
-            onCheckedChange = { v -> controller.configStore.update { it.copy(forceGlGetErrorSkip = v) } },
-        )
-        MiuixSwitchRow(
-            title = "Disable compute on weak GPU",
-            checked = config.disableComputeOnWeakGpu,
-            onCheckedChange = { v -> controller.configStore.update { it.copy(disableComputeOnWeakGpu = v) } },
-        )
-        MiuixDropdownRow(
-            title = stringResource(R.string.option_buffer_upload_mode),
-            options = BufferUploadMode.entries.map { it.label(context).toString() },
-            selectedIndex = BufferUploadMode.entries.indexOf(config.bufferUploadMode),
-            onSelect = { i ->
-                controller.configStore.update { it.copy(bufferUploadMode = BufferUploadMode.entries[i]) }
-            },
-        )
-        MiuixDropdownRow(
-            title = stringResource(R.string.option_texture_swizzle_mode),
-            options = TextureSwizzleMode.entries.map { it.label(context).toString() },
-            selectedIndex = TextureSwizzleMode.entries.indexOf(config.textureSwizzleMode),
-            onSelect = { i ->
-                controller.configStore.update { it.copy(textureSwizzleMode = TextureSwizzleMode.entries[i]) }
-            },
-        )
-        MiuixDropdownRow(
-            title = stringResource(R.string.option_max_anisotropy),
-            options = MaxAnisotropyOverride.entries.map { it.label(context).toString() },
-            selectedIndex = MaxAnisotropyOverride.entries.indexOf(config.maxAnisotropyOverride),
-            onSelect = { i ->
-                controller.configStore.update { it.copy(maxAnisotropyOverride = MaxAnisotropyOverride.entries[i]) }
-            },
-        )
-        MiuixSwitchRow(
-            title = stringResource(R.string.option_force_depth_precision_fix),
-            checked = config.forceDepthPrecisionFix,
-            onCheckedChange = { v -> controller.configStore.update { it.copy(forceDepthPrecisionFix = v) } },
-        )
-    }
-}
 
 /** Seções condicionais IMDBI / VMDI (Fase 3B) — espelho Miuix. Aparecem apenas com o engine correspondente. */
 @Composable
