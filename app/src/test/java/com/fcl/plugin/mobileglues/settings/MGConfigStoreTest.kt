@@ -150,7 +150,7 @@ class MGConfigStoreTest {
     fun `writing leaves no temporary file behind`() = runTest(dispatcher) {
         val store = newStore()
         store.load()
-        store.update { it.copy(fsr1 = Fsr1Preset.UltraQuality) }
+        store.update { it.copy(glslCache = GlslCacheSize.Disabled) }
         store.flush()
 
         assertEquals(listOf("config.json"), mgDirectory.list()!!.sorted())

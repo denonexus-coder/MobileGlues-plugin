@@ -28,7 +28,6 @@ class MGConfigCodecTest {
 
         // native 还有 Mode2 = 2，但那一档不对外开放，App 不提供也不接受。
         assertEquals(1, DepthClearFixMode.entries.last().wire)
-        assertEquals(4, Fsr1Preset.Performance.wire)
         assertEquals(46, GlVersion.Gl46.wire)
         assertEquals(0, GlVersion.Default.wire)
     }
@@ -55,7 +54,7 @@ class MGConfigCodecTest {
     fun `every field survives a round trip`() {
         val config = MGConfig(
             angle = AngleConfig.ForceDisable,
-            noError = NoErrorConfig.IgnoreShaderProgramFramebuffer,
+            noError = NoErrorConfig.Full,
             multidraw = MultidrawSettings(
                 globalOrder = MultidrawOrderItem.normalize(
                     listOf(MultidrawOrderItem.Compute, MultidrawOrderItem.Unroll),
@@ -72,7 +71,6 @@ class MGConfigCodecTest {
             extComputeShader = true,
             extTimerQuery = false,
             extDirectStateAccess = true,
-            fsr1 = Fsr1Preset.Balanced,
         )
 
         val json = Gson().toJson(encode(config))
@@ -105,12 +103,11 @@ class MGConfigCodecTest {
     @Test
     fun `out of range values fall back to the defaults`() {
         val decoded = MGConfigCodec.decode(
-            parse("""{"enableANGLE":99,"enableNoError":-4,"fsr1Setting":9}""")
+            parse("""{"enableANGLE":99,"enableNoError":-4}""")
         )
 
         assertEquals(MGConfig.Default.angle, decoded.angle)
         assertEquals(MGConfig.Default.noError, decoded.noError)
-        assertEquals(MGConfig.Default.fsr1, decoded.fsr1)
     }
 
     @Test
@@ -218,7 +215,6 @@ class MGConfigCodecTest {
         assertNull(encoded.get("multidrawDisableBackends"))
         assertEquals(0, encoded.get("angleDepthClearFixMode").asInt)
         assertEquals(0, encoded.get("customGLVersion").asInt)
-        assertEquals(0, encoded.get("fsr1Setting").asInt)
     }
 
     @Test
