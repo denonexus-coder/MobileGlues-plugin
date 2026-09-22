@@ -24,6 +24,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -62,29 +63,53 @@ fun MiuixSettingsPage(controller: AppController) {
 
     LaunchedEffect(Unit) { controller.ensureDeviceInfo() }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            // 甩到顶或底时给一下振动——HyperOS 的滚动到此为止就是这个手感。
-            .scrollEndHaptic()
-            .verticalScroll(rememberScrollState()),
-    ) {
+    val ready = auth.granted && loadState == SettingsLoadState.Ready && config != null
+    var tab by rememberSaveable { mutableStateOf(0) }
+    val tabs = listOf(
+        stringResource(R.string.settings_tab_performance),
+        stringResource(R.string.settings_tab_compatibility),
+        stringResource(R.string.settings_tab_visual),
+        stringResource(R.string.settings_tab_tools),
+    )
+
+    Column(modifier = Modifier.fillMaxSize()) {
         MiuixPageTitle(stringResource(R.string.nav_settings))
 
-        Crossfade(
-            targetState = auth.granted to (loadState == SettingsLoadState.Ready && config != null),
-            label = "settings-gate",
-        ) { (granted, ready) ->
-            Column(modifier = Modifier.fillMaxWidth()) {
-                when {
-                    !granted -> PermissionGate(onGrant = controller::requestAccess)
-                    ready -> ConfigSections(controller, config ?: MGConfig.Default)
-                    else -> MiuixLoading(modifier = Modifier.padding(top = 48.dp))
-                }
-            }
+        // Sticky: fora do scroll, para não sumirem quando o usuário rola até
+        // o fim da aba Tools. Só aparecem quando há configuração pronta para
+        // exibir — durante a permission gate ou o load inicial, não.
+        if (ready) {
+            MiuixSettingsTabSelector(
+                tabs = tabs,
+                current = tab,
+                onSelect = { tab = it },
+            )
+            Spacer(Modifier.height(8.dp))
         }
 
-        MiuixBottomSpacer()
+        Crossfade(
+            targetState = auth.granted to ready,
+            label = "settings-gate",
+        ) { (granted, isReady) ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    // 甩到顶或底时给一下振动——HyperOS 的滚动到此为止就是这个手感。
+                    .scrollEndHaptic()
+                    .verticalScroll(rememberScrollState()),
+            ) {
+                when {
+                    !granted -> PermissionGate(onGrant = controller::requestAccess)
+                    isReady -> ConfigSectionsContent(
+                        controller = controller,
+                        config = config ?: MGConfig.Default,
+                        currentTab = tab,
+                    )
+                    else -> MiuixLoading(modifier = Modifier.padding(top = 48.dp))
+                }
+                MiuixBottomSpacer()
+            }
+        }
     }
 }
 
@@ -120,29 +145,16 @@ private fun PermissionGate(onGrant: () -> Unit) {
 }
 
 @Composable
-private fun ConfigSections(controller: AppController, config: MGConfig) {
-    var tab by remember { mutableStateOf(0) }
-    val tabs = listOf(
-        stringResource(R.string.settings_tab_performance),
-        stringResource(R.string.settings_tab_compatibility),
-        stringResource(R.string.settings_tab_visual),
-        stringResource(R.string.settings_tab_tools),
-    )
-
-    Column(modifier = Modifier.fillMaxWidth()) {
-        MiuixSettingsTabSelector(
-            tabs = tabs,
-            current = tab,
-            onSelect = { tab = it },
-        )
-        Spacer(Modifier.height(8.dp))
-
-        when (tab) {
-            0 -> MiuixPerformanceTab(controller, config)
-            1 -> MiuixCompatibilityTab(controller, config)
-            2 -> MiuixVisualTab(controller, config)
-            3 -> MiuixToolsTab(controller, config)
-        }
+private fun ConfigSectionsContent(
+    controller: AppController,
+    config: MGConfig,
+    currentTab: Int,
+) {
+    when (currentTab) {
+        0 -> MiuixPerformanceTab(controller, config)
+        1 -> MiuixCompatibilityTab(controller, config)
+        2 -> MiuixVisualTab(controller, config)
+        3 -> MiuixToolsTab(controller, config)
     }
 }
 
