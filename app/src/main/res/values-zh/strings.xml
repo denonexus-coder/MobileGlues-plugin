@@ -274,4 +274,19 @@
     <string name="home_row_cache">着色器缓存</string>
     <string name="home_value_on">开</string>
     <string name="home_value_off">关</string>
+    <string name="option_disable_compute_weak_gpu">在弱 GPU 上禁用计算着色器</string>
+    <string name="hint_multidraw_engine">Legacy 使用下方的排序；VMDI 与 IMDBI 自行管理调度，不读取该顺序。</string>
+    <string name="warn_ext_compute_shader">可能破坏着色器与 Mod。仅当某个 Mod 必须使用计算着色器时才启用。</string>
+    <string name="hint_disable_compute_weak_gpu">在较弱的 GPU 上，计算回退路径可能比 CPU 路径慢约 25 倍。除非 Mod 需要计算着色器，否则保持开启。</string>
+    <string name="hint_depth_clear_fix">仅当 ANGLE 处于启用状态时生效。修复 Minecraft 1.21.5+ 中手持物品被遮挡的问题。</string>
+    <string name="hint_hide_mg_env">等级 1 会伪装 GL_VENDOR 与 GL_RENDERER。适用于检测到 MobileGlues 后拒绝启动的启动器。</string>
+    <string name="hint_ext_dsa">仅当某个游戏在缺少直接状态访问时无法启动才启用。</string>
+    <string name="warn_ext_gl43">会增加驱动 bug 的暴露面。除非某个 Mod 明确需要 GL 4.3，否则不要启用。</string>
+    <string name="hint_force_depth_precision">仅当出现 24 位精度问题导致的深度闪动时才启用。</string>
+    <string name="warn_fsr_with_angle">已知 FSR 与 ANGLE 同时启用会在部分设备上降低性能。</string>
+    <string name="hint_fsr_version">5-tap 更锐利、开销更大；3-tap 稍模糊，在基于瓦片的 GPU（PowerVR、Mali）上更合适。</string>
+    <string name="hint_max_anisotropy">在基于瓦片的 GPU 上 16x 可能损失约 5% 帧率。帧率紧张时建议使用 4x。</string>
+    <string name="hint_texture_swizzle">如果纹理颜色异常，强制 BGRA。Auto 交给驱动决定。</string>
+    <string name="hint_diag_master">关闭时，下方所有诊断项均被忽略。开启时开销约为 0.5% 帧率。</string>
+    <string name="warn_diag_perfetto">Perfetto 追踪开销较高，会明显耗电，请尽量缩短单次会话。</string>
 </resources>

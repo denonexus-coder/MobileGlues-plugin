@@ -206,6 +206,7 @@ fun MiuixDebugSection(controller: AppController, config: MGConfig) {
             checked = diag.enabled,
             onCheckedChange = { v -> controller.configStore.update { c -> c.copy(diag = c.diag.copy(enabled = v)) } },
         )
+        MiuixHintText(stringResource(R.string.hint_diag_master))
     }
 
     AnimatedVisibility(
@@ -326,6 +327,7 @@ fun MiuixDebugSection(controller: AppController, config: MGConfig) {
                         }
                     },
                 )
+                MiuixWarnText(stringResource(R.string.warn_diag_perfetto))
                 Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
                         Text(

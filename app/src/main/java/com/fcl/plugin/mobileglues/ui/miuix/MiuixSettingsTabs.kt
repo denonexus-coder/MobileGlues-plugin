@@ -68,6 +68,7 @@ fun MiuixPerformanceTab(controller: AppController, config: MGConfig) {
                 selectedIndex = MultidrawEngine.entries.indexOf(config.multidrawEngine),
                 onSelect = { i -> controller.selectMultidrawEngine(MultidrawEngine.entries[i]) },
             )
+            MiuixHintText(stringResource(R.string.hint_multidraw_engine))
             MiuixExpandableSection(
                 title = stringResource(R.string.option_multidraw),
                 summary = miuixMultidrawSummary(config.multidraw),
@@ -110,13 +111,15 @@ fun MiuixPerformanceTab(controller: AppController, config: MGConfig) {
                 checked = config.extComputeShader,
                 onCheckedChange = controller::setExtComputeShader,
             )
+            MiuixWarnText(stringResource(R.string.warn_ext_compute_shader))
             MiuixSwitchRow(
-                title = "Disable compute on weak GPU",
+                title = stringResource(R.string.option_disable_compute_weak_gpu),
                 checked = config.disableComputeOnWeakGpu,
                 onCheckedChange = { v ->
                     controller.configStore.update { it.copy(disableComputeOnWeakGpu = v) }
                 },
             )
+            MiuixHintText(stringResource(R.string.hint_disable_compute_weak_gpu))
             MiuixDropdownRow(
                 title = stringResource(R.string.option_buffer_upload_mode),
                 options = BufferUploadMode.entries.map { it.label(context).toString() },
@@ -156,6 +159,7 @@ fun MiuixCompatibilityTab(controller: AppController, config: MGConfig) {
                 selected = config.depthClearFix,
                 onSelect = controller::selectDepthClearFix,
             )
+            MiuixHintText(stringResource(R.string.hint_depth_clear_fix))
             OptionRow(
                 title = stringResource(R.string.option_custom_gl_version),
                 options = GlVersion.entries,
@@ -170,6 +174,7 @@ fun MiuixCompatibilityTab(controller: AppController, config: MGConfig) {
                     controller.configStore.update { it.copy(hideMGEnvLevel = HideMGEnvLevel.entries[i]) }
                 },
             )
+            MiuixHintText(stringResource(R.string.hint_hide_mg_env))
         }
 
         MiuixGroup(title = stringResource(R.string.settings_group_ext)) {
@@ -183,6 +188,7 @@ fun MiuixCompatibilityTab(controller: AppController, config: MGConfig) {
                 checked = config.extDirectStateAccess,
                 onCheckedChange = controller::setExtDirectStateAccess,
             )
+            MiuixHintText(stringResource(R.string.hint_ext_dsa))
             MiuixSwitchRow(
                 title = stringResource(R.string.option_ext_gl43),
                 checked = config.enableExtGL43,
@@ -190,6 +196,7 @@ fun MiuixCompatibilityTab(controller: AppController, config: MGConfig) {
                     controller.configStore.update { it.copy(enableExtGL43 = v) }
                 },
             )
+            MiuixWarnText(stringResource(R.string.warn_ext_gl43))
         }
 
         MiuixGroup(title = stringResource(R.string.settings_group_advanced_ext)) {
@@ -207,6 +214,7 @@ fun MiuixCompatibilityTab(controller: AppController, config: MGConfig) {
                     controller.configStore.update { it.copy(forceDepthPrecisionFix = v) }
                 },
             )
+            MiuixHintText(stringResource(R.string.hint_force_depth_precision))
         }
     }
 }
@@ -223,6 +231,7 @@ fun MiuixVisualTab(controller: AppController, config: MGConfig) {
                 checked = config.fsr1Enabled,
                 onCheckedChange = controller::setFsr1,
             )
+            MiuixWarnText(stringResource(R.string.warn_fsr_with_angle))
             AnimatedVisibility(
                 visible = config.fsr1Enabled,
                 enter = expandVertically() + fadeIn(),
@@ -241,6 +250,7 @@ fun MiuixVisualTab(controller: AppController, config: MGConfig) {
                             controller.configStore.update { it.copy(fsr1Version = versions[i]) }
                         },
                     )
+                    MiuixHintText(stringResource(R.string.hint_fsr_version))
                     MiuixSwitchRow(
                         title = stringResource(R.string.option_fsr_enable_sharpening),
                         summary = stringResource(R.string.option_fsr_enable_sharpening_desc),
@@ -294,6 +304,7 @@ fun MiuixVisualTab(controller: AppController, config: MGConfig) {
                     controller.configStore.update { it.copy(textureSwizzleMode = TextureSwizzleMode.entries[i]) }
                 },
             )
+            MiuixHintText(stringResource(R.string.hint_texture_swizzle))
             MiuixDropdownRow(
                 title = stringResource(R.string.option_max_anisotropy),
                 options = MaxAnisotropyOverride.entries.map { it.label(context).toString() },
@@ -302,6 +313,7 @@ fun MiuixVisualTab(controller: AppController, config: MGConfig) {
                     controller.configStore.update { it.copy(maxAnisotropyOverride = MaxAnisotropyOverride.entries[i]) }
                 },
             )
+            MiuixHintText(stringResource(R.string.hint_max_anisotropy))
         }
     }
 }
