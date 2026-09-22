@@ -396,4 +396,8 @@ Please note, this action is <b><font color="@colorError">irreversible</font></b>
     <string name="md_tab_global">Global order</string>
     <string name="md_tab_exceptions">Per-function exceptions</string>
     <string name="md_exceptions_hint">Each function can use its own order. Useful when the benchmark shows one function benefits from a different backend than the others.</string>
+    <string name="settings_group_reset">Reset</string>
+    <string name="option_reset_to_defaults">Reset to defaults</string>
+    <string name="option_reset_to_defaults_desc">Restore every renderer setting to its factory value.</string>
+    <string name="warning_reset_to_defaults">This will reset every renderer setting to its factory value. The MG directory and its files are left untouched; only the in-memory configuration and config.json are rewritten. Continue?</string>
 </resources>

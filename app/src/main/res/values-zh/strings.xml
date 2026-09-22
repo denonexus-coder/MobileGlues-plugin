@@ -292,4 +292,8 @@
     <string name="md_tab_global">全局排序</string>
     <string name="md_tab_exceptions">例外函数</string>
     <string name="md_exceptions_hint">每个函数可以使用独立的排序。当跑分显示某个函数从与其他函数不同的后端受益时很有用。</string>
+    <string name="settings_group_reset">重置</string>
+    <string name="option_reset_to_defaults">重置为默认值</string>
+    <string name="option_reset_to_defaults_desc">将每一项渲染器设置恢复为出厂值。</string>
+    <string name="warning_reset_to_defaults">这会把所有渲染器设置恢复为出厂值。MG 目录及其文件保持原样，只会重写内存中的配置和 config.json。是否继续？</string>
 </resources>

@@ -318,8 +318,22 @@ fun MiuixVisualTab(controller: AppController, config: MGConfig) {
     }
 }
 
-/** TOOLS — diagnósticos, benchmark e logging. */
+/** TOOLS — diagnósticos, benchmark, logging e reset. */
 @Composable
 fun MiuixToolsTab(controller: AppController, config: MGConfig) {
-    MiuixDebugSection(controller, config)
+    Column(modifier = Modifier.fillMaxWidth()) {
+        MiuixDebugSection(controller, config)
+
+        // Reset fica no fim de Tools — depois dos diagnósticos — porque é uma
+        // operação destrutiva e deve exigir chegar até aqui. A confirmação (com
+        // aviso explícito) fica em AppController.resetAllConfig().
+        MiuixGroup(title = stringResource(R.string.settings_group_reset)) {
+            MiuixArrowRow(
+                title = stringResource(R.string.option_reset_to_defaults),
+                summary = stringResource(R.string.option_reset_to_defaults_desc),
+                titleColor = MiuixTheme.colorScheme.error,
+                onClick = controller::resetAllConfig,
+            )
+        }
+    }
 }

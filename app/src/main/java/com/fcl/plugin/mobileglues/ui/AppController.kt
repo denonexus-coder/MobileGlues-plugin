@@ -503,6 +503,23 @@ class AppController(
         update { it.copy(glslCache = GlslCacheSize.ofMebibytes(GlslCacheScale.mebibytesAt(position, ceiling))) }
     }
 
+    /**
+     * 把所有渲染器设置恢复为出厂值。
+     *
+     * 走的是 [MGConfigStore.update] 而不是 [MGConfigStore.resetToDefaults]：
+     * 后者会把 foreignKeys 一起清掉，等于顺手删掉了本 App 不认识的键——那些键可能
+     * 是 native 写的、或者是用户自己手工加的，不属于这次重置的范围。
+     *
+     * 不碰 MG 目录里的任何文件、不收回授权、不影响隐私政策的同意：用户要的只是
+     * 「把设置调回去」，不是「把这个 App 从我设备上抹掉」——后者是危险区域的事。
+     */
+    fun resetAllConfig() {
+        scope.launch {
+            if (!confirm(R.string.warning_reset_to_defaults)) return@launch
+            configStore.update { MGConfig.Default }
+        }
+    }
+
     fun deleteGlslCache() {
         scope.launch {
             configStore.clearGlslCache().onFailure { cause ->
