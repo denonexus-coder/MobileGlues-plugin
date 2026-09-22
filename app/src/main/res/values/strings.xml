@@ -266,7 +266,7 @@ Please note, this action is <b><font color="@colorError">irreversible</font></b>
     <string name="option_multidraw_engine_desc">Legacy uses backend ordering below. VMDI/IMDBI are self-managed engines and ignore it.</string>
     <string name="option_enable_vmdi">Enable VMDI</string>
     <string name="option_enable_imdbi">Enable IMDBI</string>
-    <string name="md_engine_ordering_disabled">Backend ordering inactive: the %1$s engine manages dispatch internally.</string>    <string name="option_hide_mg_disabled">Don't hide</string>
+    <string name="md_engine_ordering_disabled">Backend ordering inactive: the %1$s engine manages dispatch internally.</string>    <string name="option_hide_mg_disabled">Do not hide</string>
     <string name="option_hide_mg_level1">Hide level 1</string>
     <string name="md_order_auto">Auto (detect)</string>
     <string name="option_ext_gl43">Enable GL 4.3 extension set</string>
