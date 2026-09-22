@@ -85,9 +85,9 @@ class MGConfigCodecTest {
         val config = MGConfigCodec.decode(root)
         val encoded = encode(config, MGConfigCodec.foreignKeysOf(root))
 
-        assertEquals(1, encoded.get("hideMGEnvLevel").asInt)
+        assertEquals(1, encoded.getAsJsonObject("opengl_egl").get("hideMGEnvLevel").asInt)
         assertEquals(7, encoded.get("somethingFromTheFuture").asInt)
-        assertEquals(3, encoded.get("enableANGLE").asInt)
+        assertEquals(3, encoded.getAsJsonObject("opengl_egl").get("enableANGLE").asInt)
     }
 
     @Test
@@ -97,7 +97,7 @@ class MGConfigCodecTest {
 
         assertNull(foreign.get("enableANGLE"))
         assertNull(foreign.get("maxGlslCacheSize"))
-        assertEquals(1, foreign.get("hideMGEnvLevel").asInt)
+        assertNull(foreign.get("hideMGEnvLevel"))
     }
 
     @Test
@@ -131,7 +131,7 @@ class MGConfigCodecTest {
 
         // 读进来再写回去，落到磁盘上的必须是 native 会夹到的那一档，不能是 0。
         assertEquals(33, encode(MGConfigCodec.decode(parse("""{"customGLVersion":38}""")))
-            .get("customGLVersion").asInt)
+            .getAsJsonObject("opengl_egl").get("customGLVersion").asInt)
     }
 
     @Test
@@ -153,7 +153,7 @@ class MGConfigCodecTest {
     fun `numbers written as strings are accepted and normalised`() {
         val decoded = MGConfigCodec.decode(parse("""{"maxGlslCacheSize":"128"}"""))
         assertEquals(GlslCacheSize.Limited(128), decoded.glslCache)
-        assertTrue(encode(decoded).get("maxGlslCacheSize").asJsonPrimitive.isNumber)
+        assertTrue(encode(decoded).getAsJsonObject("shaderCache").get("maxGlslCacheSize").asJsonPrimitive.isNumber)
     }
 
     @Test
@@ -167,8 +167,8 @@ class MGConfigCodecTest {
         assertEquals(false, decoded.extDirectStateAccess)
 
         val encoded = encode(decoded)
-        assertEquals(1, encoded.get("enableExtComputeShader").asInt)
-        assertEquals(0, encoded.get("enableExtTimerQuery").asInt)
+        assertEquals(1, encoded.getAsJsonObject("extensions").get("enableExtComputeShader").asInt)
+        assertEquals(0, encoded.getAsJsonObject("extensions").get("enableExtTimerQuery").asInt)
     }
 
     @Test
@@ -200,21 +200,23 @@ class MGConfigCodecTest {
 
     @Test
     fun `the defaults are the same ones the previous implementation wrote`() {
+        // Chaves vivem em seções nested; o teste navega até elas via
+        // getAsJsonObject(<section>).get(<key>).
         val encoded = encode(MGConfig.Default)
 
-        assertEquals(1, encoded.get("enableANGLE").asInt)
-        assertEquals(0, encoded.get("enableNoError").asInt)
-        assertEquals(1, encoded.get("enableExtTimerQuery").asInt)
-        assertEquals(0, encoded.get("enableExtComputeShader").asInt)
-        assertEquals(0, encoded.get("enableExtDirectStateAccess").asInt)
-        assertEquals(32, encoded.get("maxGlslCacheSize").asInt)
+        assertEquals(1, encoded.getAsJsonObject("opengl_egl").get("enableANGLE").asInt)
+        assertEquals(0, encoded.getAsJsonObject("errorHandling").get("enableNoError").asInt)
+        assertEquals(1, encoded.getAsJsonObject("extensions").get("enableExtTimerQuery").asInt)
+        assertEquals(0, encoded.getAsJsonObject("extensions").get("enableExtComputeShader").asInt)
+        assertEquals(0, encoded.getAsJsonObject("extensions").get("enableExtDirectStateAccess").asInt)
+        assertEquals(32, encoded.getAsJsonObject("shaderCache").get("maxGlslCacheSize").asInt)
         // MultiDraw 默认顺序、无例外 = 一个键都不写。
-        assertNull(encoded.get("multidrawOrder"))
+        assertNull(encoded.getAsJsonObject("multidrawOrder").get("_global"))
         MultidrawEntry.entries.forEach { assertNull(encoded.get(it.orderKey)) }
         assertNull(encoded.get("multidrawMode"))
         assertNull(encoded.get("multidrawDisableBackends"))
-        assertEquals(0, encoded.get("angleDepthClearFixMode").asInt)
-        assertEquals(0, encoded.get("customGLVersion").asInt)
+        assertEquals(0, encoded.getAsJsonObject("errorHandling").get("angleDepthClearFixMode").asInt)
+        assertEquals(0, encoded.getAsJsonObject("opengl_egl").get("customGLVersion").asInt)
     }
 
     @Test
@@ -233,7 +235,7 @@ class MGConfigCodecTest {
 
         assertEquals(
             "compute,unroll,native,multiindirect,multibasevertex,multiarrays,indirect,basevertex",
-            encode(decoded).get("multidrawOrder").asString,
+            encode(decoded).getAsJsonObject("multidrawOrder").get("_global").asString,
         )
     }
 
@@ -254,7 +256,7 @@ class MGConfigCodecTest {
 
         assertEquals(
             "indirect,multiarrays,multiindirect,multibasevertex,unroll",
-            encode(decoded).get("multidrawOrderElements").asString,
+            encode(decoded).getAsJsonObject("multidrawOrder").get("multidrawOrderElements").asString,
         )
     }
 
@@ -330,6 +332,6 @@ class MGConfigCodecTest {
         assertNull(encoded.get("multidrawMode"))
         assertNull(encoded.get("multidrawModeElements"))
         assertNull(encoded.get("multidrawDisableBackends"))
-        assertEquals(1, encoded.get("hideMGEnvLevel").asInt)
+        assertEquals(1, encoded.getAsJsonObject("opengl_egl").get("hideMGEnvLevel").asInt)
     }
 }
