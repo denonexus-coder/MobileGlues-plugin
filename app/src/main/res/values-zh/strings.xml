@@ -262,4 +262,8 @@
     <string name="diag_log_level_trace">跟踪</string>
     <string name="diag_log_level_error">错误</string>
 
+    <string name="settings_tab_performance">性能</string>
+    <string name="settings_tab_compatibility">兼容性</string>
+    <string name="settings_tab_visual">视觉</string>
+    <string name="settings_tab_tools">工具</string>
 </resources>

@@ -372,4 +372,8 @@ Please note, this action is <b><font color="@colorError">irreversible</font></b>
     <string name="diag_log_level_trace">Trace</string>
     <string name="diag_log_level_error">Erro</string>
 
+    <string name="settings_tab_performance">Performance</string>
+    <string name="settings_tab_compatibility">Compatibility</string>
+    <string name="settings_tab_visual">Visual</string>
+    <string name="settings_tab_tools">Tools</string>
 </resources>

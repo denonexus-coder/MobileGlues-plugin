@@ -121,173 +121,29 @@ private fun PermissionGate(onGrant: () -> Unit) {
 
 @Composable
 private fun ConfigSections(controller: AppController, config: MGConfig) {
-    val context = LocalContext.current
-    val deviceInfo by controller.deviceInfo.collectAsStateWithLifecycle()
-    val cacheBytes by controller.configStore.glslCacheBytes.collectAsStateWithLifecycle()
-    var multidrawExpanded by remember { mutableStateOf(false) }
+    var tab by remember { mutableStateOf(0) }
+    val tabs = listOf(
+        stringResource(R.string.settings_tab_performance),
+        stringResource(R.string.settings_tab_compatibility),
+        stringResource(R.string.settings_tab_visual),
+        stringResource(R.string.settings_tab_tools),
+    )
 
     Column(modifier = Modifier.fillMaxWidth()) {
-        MiuixGroup(title = stringResource(R.string.settings_group_render)) {
-            OptionRow(
-                title = stringResource(R.string.option_angle),
-                options = AngleConfig.entries,
-                selected = config.angle,
-                onSelect = controller::selectAngle,
-            )
-            OptionRow(
-                title = stringResource(R.string.option_no_error),
-                options = NoErrorConfig.entries,
-                selected = config.noError,
-                onSelect = controller::selectNoError,
-            )
-            OptionRow(
-                title = stringResource(R.string.option_angle_clear_workaround),
-                options = DepthClearFixMode.entries,
-                selected = config.depthClearFix,
-                onSelect = controller::selectDepthClearFix,
-            )
-            MiuixSwitchRow(
-                title = stringResource(R.string.option_enable_fsr1),
-                checked = config.fsr1Enabled,
-                onCheckedChange = controller::setFsr1,
-            )
-            AnimatedVisibility(
-                visible = config.fsr1Enabled,
-                enter = expandVertically() + fadeIn(),
-                exit = shrinkVertically() + fadeOut(),
-            ) {
-                Column {
-                    val versions = listOf(1, 2)
-                    MiuixDropdownRow(
-                        title = stringResource(R.string.option_fsr1_version),
-                        options = listOf(
-                            stringResource(R.string.option_fsr1_version_1),
-                            stringResource(R.string.option_fsr1_version_2)
-                        ),
-                        selectedIndex = versions.indexOf(config.fsr1Version).takeIf { it >= 0 } ?: 1,
-                        onSelect = { i ->
-                            controller.configStore.update { it.copy(fsr1Version = versions[i]) }
-                        },
-                    )
-                    MiuixSwitchRow(
-                        title = stringResource(R.string.option_fsr_enable_sharpening),
-                        summary = stringResource(R.string.option_fsr_enable_sharpening_desc),
-                        checked = config.fsrEnableSharpening,
-                        onCheckedChange = { v ->
-                            controller.configStore.update { it.copy(fsrEnableSharpening = v) }
-                        },
-                    )
-                    AnimatedVisibility(
-                        visible = config.fsrEnableSharpening && config.fsr1Version == 1,
-                        enter = expandVertically() + fadeIn(),
-                        exit = shrinkVertically() + fadeOut(),
-                    ) {
-                        MiuixSliderRow(
-                            title = stringResource(R.string.option_fsr1_sharpness),
-                            valueLabel = String.format(Locale.US, "%.2f", config.fsr1Sharpness),
-                            position = (config.fsr1Sharpness * 100).roundToInt(),
-                            steps = 100,
-                            onPositionChange = { pos ->
-                                controller.configStore.update { it.copy(fsr1Sharpness = pos / 100f) }
-                            },
-                            onDragFinished = {},
-                        )
-                    }
-                    AnimatedVisibility(
-                        visible = config.fsrEnableSharpening && config.fsr1Version == 2,
-                        enter = expandVertically() + fadeIn(),
-                        exit = shrinkVertically() + fadeOut(),
-                    ) {
-                        MiuixSliderRow(
-                            title = stringResource(R.string.option_fsr2_sharpness),
-                            valueLabel = String.format(Locale.US, "%.2f", config.fsr2Sharpness),
-                            position = (config.fsr2Sharpness * 100).roundToInt(),
-                            steps = 100,
-                            onPositionChange = { pos ->
-                                controller.configStore.update { it.copy(fsr2Sharpness = pos / 100f) }
-                            },
-                            onDragFinished = {},
-                        )
-                    }
-                }
-            }
-        }
+        MiuixSettingsTabSelector(
+            tabs = tabs,
+            current = tab,
+            onSelect = { tab = it },
+        )
+        Spacer(Modifier.height(8.dp))
 
-        MiuixGroup(title = stringResource(R.string.settings_group_cache)) {
-            GlslCacheSlider(controller, config, deviceInfo?.totalRamBytes)
-            // 没有缓存文件时不摆一个删不了东西的按钮：它按需浮现，删完收回。
-            AnimatedVisibility(
-                visible = cacheBytes != null,
-                enter = expandVertically() + fadeIn(),
-                exit = shrinkVertically() + fadeOut(),
-            ) {
-                MiuixArrowRow(
-                    title = stringResource(
-                        R.string.option_glsl_cache_delete,
-                        controller.formatCacheSize(cacheBytes ?: 0L),
-                    ),
-                    titleColor = MiuixTheme.colorScheme.error,
-                    onClick = controller::deleteGlslCache,
-                )
-            }
-            MiuixSwitchRow(
-                title = stringResource(R.string.option_program_binary_cache),
-                summary = stringResource(R.string.option_program_binary_cache_desc),
-                checked = config.useProgramBinaryCache,
-                onCheckedChange = { v ->
-                    controller.configStore.update { it.copy(useProgramBinaryCache = v) }
-                },
-            )
-        }
-
-        MiuixGroup(title = stringResource(R.string.settings_group_ext)) {
-            MiuixSwitchRow(
-                title = stringResource(R.string.option_ext_cs),
-                checked = config.extComputeShader,
-                onCheckedChange = controller::setExtComputeShader,
-            )
-            MiuixSwitchRow(
-                // 磁盘上记的是「启用」，界面上问的是「禁用」，取反只发生在这一行。
-                title = stringResource(R.string.option_ext_timer_query),
-                checked = !config.extTimerQuery,
-                onCheckedChange = controller::setExtTimerQueryDisabled,
-            )
-            MiuixSwitchRow(
-                title = stringResource(R.string.option_ext_direct_state_access),
-                checked = config.extDirectStateAccess,
-                onCheckedChange = controller::setExtDirectStateAccess,
-            )
-        }
-
-        MiuixGroup(title = stringResource(R.string.settings_group_advanced)) {
-            MiuixDropdownRow(
-                title = stringResource(R.string.option_multidraw_engine_title),
-                options = MultidrawEngine.entries.map { it.label(context).toString() },
-                selectedIndex = MultidrawEngine.entries.indexOf(config.multidrawEngine),
-                onSelect = { i -> controller.selectMultidrawEngine(MultidrawEngine.entries[i]) },
-            )
-            OptionRow(
-                title = stringResource(R.string.option_custom_gl_version),
-                options = GlVersion.entries,
-                selected = config.glVersion,
-                onSelect = controller::selectGlVersion,
-            )
-
-            MiuixExpandableSection(
-                title = stringResource(R.string.option_multidraw),
-                summary = miuixMultidrawSummary(config.multidraw),
-                expanded = multidrawExpanded,
-                onToggle = { multidrawExpanded = !multidrawExpanded },
-            ) {
-                MiuixMultidrawOrderContent(controller, config)
-            }
+        when (tab) {
+            0 -> MiuixPerformanceTab(controller, config)
+            1 -> MiuixCompatibilityTab(controller, config)
+            2 -> MiuixVisualTab(controller, config)
+            3 -> MiuixToolsTab(controller, config)
         }
     }
-
-    MiuixAdvancedSection(controller, config)
-    MiuixEngineSubmodesSection(controller, config)
-    MiuixDebugSection(controller, config)
-
 }
 
 /**
@@ -297,7 +153,7 @@ private fun ConfigSections(controller: AppController, config: MGConfig) {
  * 直接跟着配置画的话手指底下的滑块会自己抖。
  */
 @Composable
-private fun GlslCacheSlider(controller: AppController, config: MGConfig, totalRamBytes: Long?) {
+internal fun GlslCacheSlider(controller: AppController, config: MGConfig, totalRamBytes: Long?) {
     val mebibytes = config.glslCache.mebibytesOrZero
     val base = totalRamBytes?.let { GlslCacheScale.baseCeiling(it) }
         ?: GlslCacheScale.MIN_UPPER_BOUND_MIB.toInt()
@@ -323,7 +179,7 @@ private fun GlslCacheSlider(controller: AppController, config: MGConfig, totalRa
 
 /** 枚举 → 下拉行。选项顺序就是枚举的声明顺序，不会出现「选项与取值对不上」。 */
 @Composable
-private fun <T : SpinnerOption> OptionRow(
+internal fun <T : SpinnerOption> OptionRow(
     title: String,
     options: List<T>,
     selected: T,
