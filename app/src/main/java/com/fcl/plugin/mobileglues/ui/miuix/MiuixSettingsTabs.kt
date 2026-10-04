@@ -12,29 +12,27 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.fcl.plugin.mobileglues.R
 import com.fcl.plugin.mobileglues.settings.AngleConfig
-import com.fcl.plugin.mobileglues.settings.BufferUploadMode
 import com.fcl.plugin.mobileglues.settings.DepthClearFixMode
+import com.fcl.plugin.mobileglues.settings.Fsr1Preset
 import com.fcl.plugin.mobileglues.settings.GlVersion
 import com.fcl.plugin.mobileglues.settings.HideMGEnvLevel
 import com.fcl.plugin.mobileglues.settings.MGConfig
-import com.fcl.plugin.mobileglues.settings.MaxAnisotropyOverride
-import com.fcl.plugin.mobileglues.settings.MultidrawEngine
 import com.fcl.plugin.mobileglues.settings.NoErrorConfig
-import com.fcl.plugin.mobileglues.settings.TextureSwizzleMode
 import com.fcl.plugin.mobileglues.ui.AppController
-import java.util.Locale
-import kotlin.math.roundToInt
 import top.yukonga.miuix.kmp.basic.TabRowWithContour
 import top.yukonga.miuix.kmp.theme.MiuixTheme
+
+/*
+ * Every row below maps to a top-level key `config/settings.cpp` reads with
+ * `config_get_int`. There is no row for a setting the lib does not have: a
+ * control that writes nothing the renderer will read is worse than no control.
+ */
 
 /** TabRow de topo da página de Settings. */
 @Composable
@@ -55,30 +53,10 @@ fun MiuixSettingsTabSelector(
 /** PERFORMANCE — o que faz o jogo rodar mais rápido. */
 @Composable
 fun MiuixPerformanceTab(controller: AppController, config: MGConfig) {
-    val context = LocalContext.current
     val deviceInfo by controller.deviceInfo.collectAsStateWithLifecycle()
-    val cacheBytes by controller.configStore.glslCacheBytes.collectAsStateWithLifecycle()
-    var multidrawExpanded by remember { mutableStateOf(false) }
+    val cacheBytes by controller.configStore.shaderCacheBytes.collectAsStateWithLifecycle()
 
     Column(modifier = Modifier.fillMaxWidth()) {
-        MiuixGroup(title = stringResource(R.string.settings_group_advanced)) {
-            MiuixDropdownRow(
-                title = stringResource(R.string.option_multidraw_engine_title),
-                options = MultidrawEngine.entries.map { it.label(context).toString() },
-                selectedIndex = MultidrawEngine.entries.indexOf(config.multidrawEngine),
-                onSelect = { i -> controller.selectMultidrawEngine(MultidrawEngine.entries[i]) },
-            )
-            MiuixHintText(stringResource(R.string.hint_multidraw_engine))
-            MiuixExpandableSection(
-                title = stringResource(R.string.option_multidraw),
-                summary = miuixMultidrawSummary(config.multidraw),
-                expanded = multidrawExpanded,
-                onToggle = { multidrawExpanded = !multidrawExpanded },
-            ) {
-                MiuixMultidrawOrderContent(controller, config)
-            }
-        }
-
         MiuixGroup(title = stringResource(R.string.settings_group_cache)) {
             GlslCacheSlider(controller, config, deviceInfo?.totalRamBytes)
             AnimatedVisibility(
@@ -92,7 +70,7 @@ fun MiuixPerformanceTab(controller: AppController, config: MGConfig) {
                         controller.formatCacheSize(cacheBytes ?: 0L),
                     ),
                     titleColor = MiuixTheme.colorScheme.error,
-                    onClick = controller::deleteGlslCache,
+                    onClick = controller::deleteShaderCache,
                 )
             }
             MiuixSwitchRow(
@@ -112,25 +90,7 @@ fun MiuixPerformanceTab(controller: AppController, config: MGConfig) {
                 onCheckedChange = controller::setExtComputeShader,
             )
             MiuixWarnText(stringResource(R.string.warn_ext_compute_shader))
-            MiuixSwitchRow(
-                title = stringResource(R.string.option_disable_compute_weak_gpu),
-                checked = config.disableComputeOnWeakGpu,
-                onCheckedChange = { v ->
-                    controller.configStore.update { it.copy(disableComputeOnWeakGpu = v) }
-                },
-            )
-            MiuixHintText(stringResource(R.string.hint_disable_compute_weak_gpu))
-            MiuixDropdownRow(
-                title = stringResource(R.string.option_buffer_upload_mode),
-                options = BufferUploadMode.entries.map { it.label(context).toString() },
-                selectedIndex = BufferUploadMode.entries.indexOf(config.bufferUploadMode),
-                onSelect = { i ->
-                    controller.configStore.update { it.copy(bufferUploadMode = BufferUploadMode.entries[i]) }
-                },
-            )
         }
-
-        MiuixEngineSubmodesSection(controller, config)
     }
 }
 
@@ -189,144 +149,40 @@ fun MiuixCompatibilityTab(controller: AppController, config: MGConfig) {
                 onCheckedChange = controller::setExtDirectStateAccess,
             )
             MiuixHintText(stringResource(R.string.hint_ext_dsa))
-            MiuixSwitchRow(
-                title = stringResource(R.string.option_ext_gl43),
-                checked = config.enableExtGL43,
-                onCheckedChange = { v ->
-                    controller.configStore.update { it.copy(enableExtGL43 = v) }
-                },
-            )
-            MiuixWarnText(stringResource(R.string.warn_ext_gl43))
-        }
-
-        MiuixGroup(title = stringResource(R.string.settings_group_advanced_ext)) {
-            MiuixSwitchRow(
-                title = stringResource(R.string.option_force_gl_get_error_skip),
-                checked = config.forceGlGetErrorSkip,
-                onCheckedChange = { v ->
-                    controller.configStore.update { it.copy(forceGlGetErrorSkip = v) }
-                },
-            )
-            MiuixSwitchRow(
-                title = stringResource(R.string.option_force_depth_precision_fix),
-                checked = config.forceDepthPrecisionFix,
-                onCheckedChange = { v ->
-                    controller.configStore.update { it.copy(forceDepthPrecisionFix = v) }
-                },
-            )
-            MiuixHintText(stringResource(R.string.hint_force_depth_precision))
         }
     }
 }
 
-/** VISUAL — o que muda o que você vê. */
+/**
+ * VISUAL — o que muda o que você vê.
+ *
+ * FSR is one preset, not a version + sharpening pair: `fsr1Setting` is the only
+ * upscaling key the lib reads, and it is an enum (Disabled … Performance), not
+ * a set of independent toggles.
+ */
 @Composable
 fun MiuixVisualTab(controller: AppController, config: MGConfig) {
-    val context = LocalContext.current
-
     Column(modifier = Modifier.fillMaxWidth()) {
-        MiuixGroup(title = stringResource(R.string.settings_group_render)) {
-            MiuixSwitchRow(
-                title = stringResource(R.string.option_enable_fsr1),
-                checked = config.fsr1Enabled,
-                onCheckedChange = controller::setFsr1,
+        MiuixGroup(title = stringResource(R.string.settings_group_upscaling)) {
+            OptionRow(
+                title = stringResource(R.string.option_fsr1_preset),
+                options = Fsr1Preset.entries,
+                selected = config.fsr1Setting,
+                onSelect = controller::selectFsr1,
             )
+            MiuixHintText(stringResource(R.string.hint_fsr1_preset))
             MiuixWarnText(stringResource(R.string.warn_fsr_with_angle))
-            AnimatedVisibility(
-                visible = config.fsr1Enabled,
-                enter = expandVertically() + fadeIn(),
-                exit = shrinkVertically() + fadeOut(),
-            ) {
-                Column {
-                    val versions = listOf(1, 2)
-                    MiuixDropdownRow(
-                        title = stringResource(R.string.option_fsr1_version),
-                        options = listOf(
-                            stringResource(R.string.option_fsr1_version_1),
-                            stringResource(R.string.option_fsr1_version_2),
-                        ),
-                        selectedIndex = versions.indexOf(config.fsr1Version).takeIf { it >= 0 } ?: 1,
-                        onSelect = { i ->
-                            controller.configStore.update { it.copy(fsr1Version = versions[i]) }
-                        },
-                    )
-                    MiuixHintText(stringResource(R.string.hint_fsr_version))
-                    MiuixSwitchRow(
-                        title = stringResource(R.string.option_fsr_enable_sharpening),
-                        summary = stringResource(R.string.option_fsr_enable_sharpening_desc),
-                        checked = config.fsrEnableSharpening,
-                        onCheckedChange = { v ->
-                            controller.configStore.update { it.copy(fsrEnableSharpening = v) }
-                        },
-                    )
-                    AnimatedVisibility(
-                        visible = config.fsrEnableSharpening && config.fsr1Version == 1,
-                        enter = expandVertically() + fadeIn(),
-                        exit = shrinkVertically() + fadeOut(),
-                    ) {
-                        MiuixSliderRow(
-                            title = stringResource(R.string.option_fsr1_sharpness),
-                            valueLabel = String.format(Locale.US, "%.2f", config.fsr1Sharpness),
-                            position = (config.fsr1Sharpness * 100).roundToInt(),
-                            steps = 100,
-                            onPositionChange = { pos ->
-                                controller.configStore.update { it.copy(fsr1Sharpness = pos / 100f) }
-                            },
-                            onDragFinished = {},
-                        )
-                    }
-                    AnimatedVisibility(
-                        visible = config.fsrEnableSharpening && config.fsr1Version == 2,
-                        enter = expandVertically() + fadeIn(),
-                        exit = shrinkVertically() + fadeOut(),
-                    ) {
-                        MiuixSliderRow(
-                            title = stringResource(R.string.option_fsr2_sharpness),
-                            valueLabel = String.format(Locale.US, "%.2f", config.fsr2Sharpness),
-                            position = (config.fsr2Sharpness * 100).roundToInt(),
-                            steps = 100,
-                            onPositionChange = { pos ->
-                                controller.configStore.update { it.copy(fsr2Sharpness = pos / 100f) }
-                            },
-                            onDragFinished = {},
-                        )
-                    }
-                }
-            }
-        }
-
-        MiuixGroup(title = stringResource(R.string.settings_group_advanced_ext)) {
-            MiuixDropdownRow(
-                title = stringResource(R.string.option_texture_swizzle_mode),
-                options = TextureSwizzleMode.entries.map { it.label(context).toString() },
-                selectedIndex = TextureSwizzleMode.entries.indexOf(config.textureSwizzleMode),
-                onSelect = { i ->
-                    controller.configStore.update { it.copy(textureSwizzleMode = TextureSwizzleMode.entries[i]) }
-                },
-            )
-            MiuixHintText(stringResource(R.string.hint_texture_swizzle))
-            MiuixDropdownRow(
-                title = stringResource(R.string.option_max_anisotropy),
-                options = MaxAnisotropyOverride.entries.map { it.label(context).toString() },
-                selectedIndex = MaxAnisotropyOverride.entries.indexOf(config.maxAnisotropyOverride),
-                onSelect = { i ->
-                    controller.configStore.update { it.copy(maxAnisotropyOverride = MaxAnisotropyOverride.entries[i]) }
-                },
-            )
-            MiuixHintText(stringResource(R.string.hint_max_anisotropy))
         }
     }
 }
 
-/** TOOLS — diagnósticos, benchmark, logging e reset. */
+/** TOOLS — benchmark e reset. */
 @Composable
 fun MiuixToolsTab(controller: AppController, config: MGConfig) {
     Column(modifier = Modifier.fillMaxWidth()) {
-        MiuixDebugSection(controller, config)
-
-        // Reset fica no fim de Tools — depois dos diagnósticos — porque é uma
-        // operação destrutiva e deve exigir chegar até aqui. A confirmação (com
-        // aviso explícito) fica em AppController.resetAllConfig().
+        // Reset fica no fim de Tools porque é uma operação destrutiva e deve
+        // exigir chegar até aqui. A confirmação (com aviso explícito) fica em
+        // AppController.resetAllConfig().
         MiuixGroup(title = stringResource(R.string.settings_group_reset)) {
             MiuixArrowRow(
                 title = stringResource(R.string.option_reset_to_defaults),

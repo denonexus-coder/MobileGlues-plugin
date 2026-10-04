@@ -26,14 +26,12 @@ import com.fcl.plugin.mobileglues.settings.GlslCacheScale
 import com.fcl.plugin.mobileglues.settings.GlslCacheSize
 import com.fcl.plugin.mobileglues.settings.MGConfig
 import com.fcl.plugin.mobileglues.settings.MgStats
+import com.fcl.plugin.mobileglues.settings.Fsr1Preset
 import com.fcl.plugin.mobileglues.settings.MultidrawBackend
 import com.fcl.plugin.mobileglues.settings.MultidrawBenchAnalyzer
 import com.fcl.plugin.mobileglues.settings.MultidrawBenchQuality
 import com.fcl.plugin.mobileglues.settings.MultidrawBenchReport
 import com.fcl.plugin.mobileglues.settings.MultidrawEntry
-import com.fcl.plugin.mobileglues.settings.MultidrawEngine
-import com.fcl.plugin.mobileglues.settings.MultidrawOrderItem
-import com.fcl.plugin.mobileglues.settings.MultidrawSettings
 import com.fcl.plugin.mobileglues.settings.NoErrorConfig
 import com.fcl.plugin.mobileglues.settings.RankedItem
 import com.fcl.plugin.mobileglues.settings.SponsorPrompt
@@ -423,28 +421,10 @@ class AppController(
                 confirm(R.string.warning_adreno_740_angle)
             if (!approved) return@launch
             update { it.copy(angle = target) }
-            // 换了驱动，之前那份排序是在另一个驱动上量出来的。只有用户自己调过或跑过分
-            // 才值得说这句——默认顺序本来就不是量出来的，换驱动也谈不上过期。
-            if (current.multidraw != MultidrawSettings.Default) {
-                mutableBenchOutdated.tryEmit(Unit)
-            }
         }
     }
 
-    /**
-     * ANGLE 模式变了，而手上这份 MultiDraw 排序是在旧驱动上定的。
-     *
-     * 用 SharedFlow 而不是状态位：这是一次「刚刚发生了什么」的通知，用户看过就过去了，
-     * 不该在重组或返回这一页时再冒出来一次。
-     */
-    private val mutableBenchOutdated = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
-    val benchOutdated: MutableSharedFlow<Unit> = mutableBenchOutdated
-
     fun selectNoError(target: NoErrorConfig) = update { it.copy(noError = target) }
-
-    fun selectMultidrawEngine(target: MultidrawEngine) {
-        update { it.copy(multidrawEngine = target) }
-    }
 
     fun selectGlVersion(target: GlVersion) {
         val current = configStore.config.value ?: return
@@ -488,13 +468,17 @@ class AppController(
 
     fun setExtDirectStateAccess(enabled: Boolean) = update { it.copy(extDirectStateAccess = enabled) }
 
-    fun setFsr1(enabled: Boolean) {
+    /**
+     * FSR1 quality preset. Enabling it still asks first — the warning text
+     * about ANGLE is unchanged, only the shape of the control is.
+     */
+    fun selectFsr1(target: Fsr1Preset) {
         val current = configStore.config.value ?: return
-        if (enabled == current.fsr1Enabled) return
-        if (enabled) {
-            confirmThenUpdate(R.string.warning_fsr1_enable) { it.copy(fsrEnableSharpening = true) }
+        if (target == current.fsr1Setting) return
+        if (target == Fsr1Preset.Disabled) {
+            update { it.copy(fsr1Setting = Fsr1Preset.Disabled) }
         } else {
-            update { it.copy(fsrEnableSharpening = false) }
+            confirmThenUpdate(R.string.warning_fsr1_enable) { it.copy(fsr1Setting = target) }
         }
     }
 
@@ -520,9 +504,9 @@ class AppController(
         }
     }
 
-    fun deleteGlslCache() {
+    fun deleteShaderCache() {
         scope.launch {
-            configStore.clearGlslCache().onFailure { cause ->
+            configStore.clearShaderCache().onFailure { cause ->
                 snackbar(
                     context.getString(
                         R.string.option_glsl_cache_delete_failed,
@@ -531,51 +515,6 @@ class AppController(
                 )
             }
         }
-    }
-
-    // ---- MultiDraw 排序 ----
-
-    /** 全局排序里把第 [from] 项拖到第 [to] 位。 */
-    fun moveMultidrawGlobalItem(from: Int, to: Int) {
-        update {
-            val order = it.multidraw.globalOrder.toMutableList()
-            if (!order.moveItem(from, to)) return@update it
-            it.copy(multidraw = it.multidraw.withGlobalOrder(order))
-        }
-    }
-
-    fun resetMultidrawGlobalOrder() {
-        update { it.copy(multidraw = it.multidraw.withGlobalOrder(MultidrawOrderItem.DefaultOrder)) }
-    }
-
-    fun setMultidrawException(entry: MultidrawEntry, enabled: Boolean) {
-        update { it.copy(multidraw = it.multidraw.withException(entry, enabled)) }
-    }
-
-    /** 把某个函数的例外排序退回它的默认值——全局排序在这个函数上的展开。 */
-    fun resetMultidrawExceptionOrder(entry: MultidrawEntry) {
-        update {
-            it.copy(
-                multidraw = it.multidraw
-                    .withExceptionOrder(entry, it.multidraw.globalOrderFor(entry)),
-            )
-        }
-    }
-
-    /** 某函数的例外排序里把第 [from] 项拖到第 [to] 位。 */
-    fun moveMultidrawExceptionItem(entry: MultidrawEntry, from: Int, to: Int) {
-        update {
-            val order = it.multidraw.effectiveOrderFor(entry).toMutableList()
-            if (!order.moveItem(from, to)) return@update it
-            it.copy(multidraw = it.multidraw.withExceptionOrder(entry, order))
-        }
-    }
-
-    /** 拖动排序是「抽出来再插进去」，不是相邻交换——跨多位时两者结果不一样。 */
-    private fun <T> MutableList<T>.moveItem(from: Int, to: Int): Boolean {
-        if (from == to || from !in indices || to !in indices) return false
-        add(to, removeAt(from))
-        return true
     }
 
     // ---- MultiDraw 跑分 ----
@@ -649,16 +588,6 @@ class AppController(
 
     private val mutableBenchState = MutableStateFlow<BenchState?>(null)
     val benchState: StateFlow<BenchState?> = mutableBenchState.asStateFlow()
-
-    /**
-     * MultiDraw 还是出厂那份顺序——没人调过，也没采用过跑分结果。
-     *
-     * 默认顺序是照着「一般来说什么快」定的，不是在这台设备上量出来的，所以首页可以轻轻
-     * 提一句。一旦排序变成非默认（自己拖过，或采用了跑分），这条提示自己就消失了。
-     */
-    val multidrawUntuned: StateFlow<Boolean> = configStore.config
-        .map { it != null && it.multidraw == MultidrawSettings.Default }
-        .stateIn(scope, SharingStarted.Eagerly, false)
 
     /** 借 ANGLE 是为了哪件事：跑分，还是查 MobileGlues 信息。 */
     sealed interface AngleUse {
@@ -940,22 +869,6 @@ class AppController(
         borrowed -> BenchAngleNote.BorrowFailed
         report.wrongDriver -> BenchAngleNote.SystemInsteadOfAngle
         else -> null
-    }
-
-    /**
-     * 采用跑分给出的排序：每个测出结果的函数各自启用例外，写入自己那份顺序。
-     *
-     * 全局排序原样不动——它是「没有单独说法的函数走这里」的兜底，跑分说不了它的话。
-     */
-    fun adoptBenchResult() {
-        val done = mutableBenchState.value as? BenchState.Done ?: return
-        update { config ->
-            val multidraw = done.rankings.entries.fold(config.multidraw) { settings, (entry, ranking) ->
-                settings.withExceptionOrder(entry, ranking.map { it.item })
-            }
-            config.copy(multidraw = multidraw)
-        }
-        mutableBenchState.value = null
     }
 
     fun dismissBench() {

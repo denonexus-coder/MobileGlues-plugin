@@ -50,11 +50,26 @@ interface MgStorage {
      */
     fun readStats(): String?
 
-    /** GLSL 缓存文件的字节数；文件不存在为 null。 */
-    fun glslCacheBytes(): Long?
+    /**
+     * `shadercache/` 里已经积累的字节数；没有任何产物（目录不存在，或刚被清空）为 null。
+     *
+     * 空目录也算 null 而不是 0：这个值在界面上决定「删除缓存」这一行在不在，对着一个
+     * 还没有内容的缓存提供删除按钮，只是一个按不动的按钮。
+     */
+    fun shaderCacheBytes(): Long?
 
+    /**
+     * 建出 `shadercache/`，让渲染器一进游戏就有地方写。
+     *
+     * native 端在游戏进程里跑，和本 App 不同 UID，所以它自己也会 mkdir；这里是
+     * 兜底——目录先在，第一次写缓存就不必在绘制路径上碰一次失败的创建。
+     */
     @Throws(IOException::class)
-    fun deleteGlslCache()
+    fun ensureShaderCacheDirectory()
+
+    /** 整个 `shadercache/` 递归删掉，然后把空目录建回去。 */
+    @Throws(IOException::class)
+    fun deleteShaderCache()
 
     /**
      * 删除 MobileGlues 和本插件在 MG 目录下自己创建的全部文件（危险区域的「移除 MobileGlues」）。
@@ -70,7 +85,7 @@ interface MgStorage {
 class DirectMgStorage(private val root: File) : MgStorage {
 
     private val configFile = File(root, CONFIG_FILE_NAME)
-    private val glslCacheFile = File(root, GLSL_CACHE_FILE_NAME)
+    private val shaderCacheDir = File(root, SHADER_CACHE_DIR_NAME)
 
     override val displayPath: String get() = root.absolutePath
 
@@ -91,19 +106,29 @@ class DirectMgStorage(private val root: File) : MgStorage {
     override fun readStats(): String? =
         runCatching { File(root, STATS_FILE_NAME).takeIf { it.isFile }?.readText() }.getOrNull()
 
-    override fun glslCacheBytes(): Long? = glslCacheFile.takeIf { it.isFile }?.length()
+    override fun shaderCacheBytes(): Long? =
+        shaderCacheDir.takeIf { it.isDirectory }
+            ?.let(::recursiveSize)
+            ?.takeIf { it > 0L }
 
-    override fun deleteGlslCache() {
-        if (glslCacheFile.exists() && !glslCacheFile.delete()) {
-            throw IOException("Could not delete ${glslCacheFile.path}")
+    override fun ensureShaderCacheDirectory() {
+        if (!shaderCacheDir.isDirectory && !shaderCacheDir.mkdirs()) {
+            throw IOException("Could not create ${shaderCacheDir.path}")
         }
+    }
+
+    override fun deleteShaderCache() {
+        if (shaderCacheDir.exists() && !deleteRecursively(shaderCacheDir)) {
+            throw IOException("Could not delete ${shaderCacheDir.path}")
+        }
+        ensureShaderCacheDirectory()
     }
 
     override fun deleteAll() {
         if (!root.isDirectory) return
         for (name in KNOWN_MG_FILE_NAMES) {
             val file = File(root, name)
-            if (file.exists() && !file.delete()) {
+            if (file.exists() && !deleteRecursively(file)) {
                 throw IOException("Could not delete ${file.path}")
             }
         }
@@ -183,19 +208,31 @@ class SafMgStorage(
         }
     }.getOrNull()
 
-    override fun glslCacheBytes(): Long? =
-        child(GLSL_CACHE_FILE_NAME)?.takeIf { it.isFile }?.length()
+    override fun shaderCacheBytes(): Long? {
+        val dir = child(SHADER_CACHE_DIR_NAME)?.takeIf { it.isDirectory } ?: return null
+        return runCatching { recursiveSize(dir).takeIf { it > 0L } }.getOrNull()
+    }
 
-    override fun deleteGlslCache() {
-        val doc = child(GLSL_CACHE_FILE_NAME) ?: return
-        if (!doc.delete()) throw IOException("Could not delete $GLSL_CACHE_FILE_NAME")
+    override fun ensureShaderCacheDirectory() {
+        child(SHADER_CACHE_DIR_NAME)?.takeIf { it.isDirectory }?.let { return }
+        val dir = tree() ?: throw IOException("MG directory is not accessible")
+        dir.createDirectory(SHADER_CACHE_DIR_NAME)
+            ?: throw IOException("Could not create $SHADER_CACHE_DIR_NAME")
+    }
+
+    override fun deleteShaderCache() {
+        val dir = child(SHADER_CACHE_DIR_NAME)
+        if (dir != null && !deleteRecursively(dir)) {
+            throw IOException("Could not delete $SHADER_CACHE_DIR_NAME")
+        }
+        ensureShaderCacheDirectory()
     }
 
     override fun deleteAll() {
         val dir = tree() ?: return
         for (name in KNOWN_MG_FILE_NAMES) {
             val doc = dir.findFile(name) ?: continue
-            if (!doc.delete()) throw IOException("Could not delete $name")
+            if (!deleteRecursively(doc)) throw IOException("Could not delete $name")
         }
         // 目录本身只有在清空之后才顺手删掉：用户自己塞进来的文件会让它继续留着。
         if (dir.listFiles().isEmpty()) {
@@ -211,12 +248,20 @@ class SafMgStorage(
 }
 
 internal const val CONFIG_FILE_NAME = "config.json"
-internal const val GLSL_CACHE_FILE_NAME = "glsl_cache.tmp"
 internal const val STATS_FILE_NAME = "stats.json"
 internal const val LOG_FILE_NAME = "latest.log"
 internal const val GL_CALLS_FILE_NAME = "glcalls.txt"
 internal const val CORRUPT_BACKUP_SUFFIX = ".corrupt"
 private const val CONFIG_TEMP_FILE_NAME = CONFIG_FILE_NAME + ".tmp"
+
+/**
+ * ESSL 程序二进制缓存的目录名，`/sdcard/MG/shadercache/`。
+ *
+ * 决不放 GLSL 源码：缓存里只有 ESSL（给文本着色器，只有源码能压成这么小）和
+ * `glGetProgramBinary` 吐出来的驱动二进制。目录里按 `<sourceHash>/` 分源码、
+ * 按 `<configHash>.essl|.bin` 分配置变体，两边都由 native 端写。
+ */
+internal const val SHADER_CACHE_DIR_NAME = "shadercache"
 
 /**
  * MobileGlues（native 库）和本插件会在 MG 目录下主动创建的全部文件名。
@@ -228,11 +273,32 @@ internal val KNOWN_MG_FILE_NAMES = listOf(
     CONFIG_FILE_NAME,
     CONFIG_TEMP_FILE_NAME,
     CONFIG_FILE_NAME + CORRUPT_BACKUP_SUFFIX,
-    GLSL_CACHE_FILE_NAME,
+    SHADER_CACHE_DIR_NAME,
     STATS_FILE_NAME,
     LOG_FILE_NAME,
     GL_CALLS_FILE_NAME,
 )
+
+/** 递归求和，缓存目录一个条目都不放过。 */
+private fun recursiveSize(dir: File): Long =
+    dir.walkBottomUp().filter { it.isFile }.sumOf { it.length() }
+
+/** 递归删除：先子后父，返回是否全部删掉。 */
+private fun deleteRecursively(target: File): Boolean {
+    if (target.isDirectory) {
+        target.listFiles()?.forEach { deleteRecursively(it) }
+    }
+    return !target.exists() || target.delete()
+}
+
+/** SAF 版：DocumentFile 删非空目录会失败，所以必须先删子项。 */
+private fun recursiveSize(dir: DocumentFile): Long =
+    dir.listFiles().sumOf { if (it.isFile) it.length() else recursiveSize(it) }
+
+private fun deleteRecursively(doc: DocumentFile): Boolean {
+    if (doc.isDirectory) doc.listFiles().forEach { deleteRecursively(it) }
+    return !doc.exists() || doc.delete()
+}
 
 /**
  * 先写临时文件再 rename。

@@ -80,10 +80,14 @@ class MGConfigStore(
      * 界面据此决定要不要给出「删除缓存」按钮、以及在按钮上显示多大，所以它是状态而不是
      * 一次性查询：删除之后必须立刻反映出来，把按钮收回去。
      */
-    private val mutableGlslCacheBytes = MutableStateFlow<Long?>(null)
-    val glslCacheBytes: StateFlow<Long?> = mutableGlslCacheBytes.asStateFlow()
+    private val mutableShaderCacheBytes = MutableStateFlow<Long?>(null)
+    val shaderCacheBytes: StateFlow<Long?> = mutableShaderCacheBytes.asStateFlow()
 
-    /** 配置文件里本 App 不认识的键（例如 native 的 `hideMGEnvLevel`），保存时原样写回。 */
+    /**
+     * 配置文件里本 App 不认识的键，保存时原样写回——留给将来 native 会新增的设置，
+     * 或者用户手工加的键。本 App 自己的 11 个键和 native 不读的死键都不在其中：
+     * 前者由 [MGConfigCodec.encode] 唯一写入，后者在保存时被顺手清掉。
+     */
     private var foreignKeys: JsonObject? = null
 
     /**
@@ -108,9 +112,18 @@ class MGConfigStore(
         scope.launch { collectPendingSaves() }
     }
 
-    /** 授权建立后接入存储。更换授权方式时先 [detachStorage] 再 attach。 */
+    /**
+     * 授权建立后接入存储。更换授权方式时先 [detachStorage] 再 attach。
+     *
+     * 顺手建出 `shadercache/` 并问一次它的大小：渲染器在游戏进程里跑，会自己再 mkdir
+     * 一次，但目录先在，第一次写缓存就不必在绘制路径上碰一次失败的创建。
+     */
     fun attachStorage(storage: MgStorage) {
         this.storage = storage
+        scope.launch {
+            withContext(io) { runCatching { storage.ensureShaderCacheDirectory() } }
+            refreshShaderCacheSize()
+        }
     }
 
     /**
@@ -185,19 +198,21 @@ class MGConfigStore(
     }
 
     /**
-     * 删除 GLSL 缓存文件。
+     * 删除 `shadercache/` 里已经积累的编译产物，然后把空目录建回去。
      *
      * 这是一条只由用户显式触发的命令：既不是「把缓存上限设成关闭」的副作用，也不会在读取配置时
      * 顺手执行——删掉的是用户已经积累好的着色器缓存，不能由赋值语句代劳。
+     *
+     * 目录本身会留着：渲染器下一次启动就要往里写，没有必要让它先面对一个不存在的路径。
      */
-    suspend fun clearGlslCache(): Result<Unit> = withContext(io) {
+    suspend fun clearShaderCache(): Result<Unit> = withContext(io) {
         runCatching {
-            requireStorage().deleteGlslCache()
-        }.also { refreshGlslCacheFile() }
+            requireStorage().deleteShaderCache()
+        }.also { refreshShaderCacheSize() }
     }
 
-    private fun refreshGlslCacheFile() {
-        mutableGlslCacheBytes.value = runCatching { storage?.glslCacheBytes() }.getOrNull()
+    private fun refreshShaderCacheSize() {
+        mutableShaderCacheBytes.value = runCatching { storage?.shaderCacheBytes() }.getOrNull()
     }
 
     /** 把当前配置导出到应用私有目录（供 MGInfoGetter 读取），不影响用户的配置文件。 */
@@ -211,7 +226,7 @@ class MGConfigStore(
 
     private fun readConfigFile(): ConfigLoadResult {
         // 顺便刷新缓存文件的状态：游戏在后台跑过一轮之后它可能才出现、或者变大了。
-        refreshGlslCacheFile()
+        refreshShaderCacheSize()
 
         val storage = try {
             requireStorage()

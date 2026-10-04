@@ -66,8 +66,7 @@ fun MiuixHomePage(controller: AppController) {
     val auth by controller.auth.state.collectAsStateWithLifecycle()
     val deviceInfo by controller.deviceInfo.collectAsStateWithLifecycle()
     val config by controller.configStore.config.collectAsStateWithLifecycle()
-    val cacheBytes by controller.configStore.glslCacheBytes.collectAsStateWithLifecycle()
-    val untuned by controller.multidrawUntuned.collectAsStateWithLifecycle()
+    val cacheBytes by controller.configStore.shaderCacheBytes.collectAsStateWithLifecycle()
 
     LaunchedEffect(Unit) { controller.ensureDeviceInfo() }
     // 启动次数记在 MG 目录里，未授权时读不到；授权建立之后再问一次。
@@ -111,19 +110,6 @@ fun MiuixHomePage(controller: AppController) {
         if (auth.granted) {
             Spacer(Modifier.height(12.dp))
             EnterUp(entered, delayMillis = 260) { ActionsCard(controller, cacheBytes) }
-        }
-
-        // 排序还是出厂那份，没人量过这台设备。两层动画各管各的：外层跟着首页那串
-        // 进场依次上来，内层负责跑完分采用之后自己收走。
-        if (untuned && auth.granted) {
-            Spacer(Modifier.height(12.dp))
-            EnterUp(entered, delayMillis = 320) {
-                BenchmarkNudge(
-                    onClick = {
-                        controller.runMultidrawBench(AppController.BenchTarget.AllEntries)
-                    },
-                )
-            }
         }
 
         Spacer(Modifier.height(72.dp))
@@ -204,17 +190,10 @@ private fun AuthPill(granted: Boolean, onClick: () -> Unit) {
 private fun StatusCard(config: MGConfig) {
     val context = LocalContext.current
 
-    // MultiDraw: engine name, plus the order summary only when that engine
-    // actually honours an order (Legacy). VMDI/IMDBI manage dispatch internally.
-    val engine = config.multidrawEngine.label(context).toString()
-    val multidrawValue = if (config.multidrawEngine.usesBackendOrdering) {
-        "$engine · ${miuixMultidrawSummary(config.multidraw)}"
-    } else {
-        engine
-    }
-
+    // FSR 现在是一个预设档位，不是一个开关加一个版本号：fsr1Setting 是 upscaling
+    // 唯一被读的键，而且它是枚举（Off … Performance），不是几个独立的布尔量。
     val fsrValue = if (config.fsr1Enabled) {
-        "${stringResource(R.string.home_value_on)} · v${config.fsr1Version}"
+        "${stringResource(R.string.home_value_on)} · ${config.fsr1Setting.label(context)}"
     } else {
         stringResource(R.string.home_value_off)
     }
@@ -226,7 +205,6 @@ private fun StatusCard(config: MGConfig) {
     }
 
     MiuixGroup(title = stringResource(R.string.home_section_status)) {
-        MiuixStatRow(stringResource(R.string.home_row_multidraw), multidrawValue)
         MiuixStatRow(stringResource(R.string.home_row_fsr), fsrValue)
         MiuixStatRow(stringResource(R.string.home_row_cache), cacheValue)
     }
@@ -278,7 +256,7 @@ private fun ActionsCard(controller: AppController, cacheBytes: Long?) {
                     controller.formatCacheSize(cacheBytes ?: 0L),
                 ),
                 titleColor = MiuixTheme.colorScheme.error,
-                onClick = controller::deleteGlslCache,
+                onClick = controller::deleteShaderCache,
             )
         }
     }

@@ -11,6 +11,11 @@ import org.junit.Test
 
 /**
  * `MG/config.json` 是和 native 端共享的格式，这些用例锁住的是那份契约。
+ *
+ * The reader is `config_get_int(name)` → `cJSON_GetObjectItem(config_json,
+ * name)` — top level only, no dotted paths, no nested lookup. So every key
+ * assertion below reads from the root: a key the renderer cannot reach is not
+ * a setting, whatever it is called or where it is nested.
  */
 class MGConfigCodecTest {
 
@@ -19,17 +24,42 @@ class MGConfigCodecTest {
     private fun encode(config: MGConfig, foreign: JsonObject? = null): JsonObject =
         MGConfigCodec.encode(config, foreign)
 
+    // ═══════════════════════════════════════════════════════════════════
+    //  wires
+    // ═══════════════════════════════════════════════════════════════════
+
     @Test
     fun `wire values match the native settings header`() {
+        // AngleConfig, config/settings.h
         assertEquals(0, AngleConfig.DisableIfPossible.wire)
         assertEquals(1, AngleConfig.EnableIfPossible.wire)
         assertEquals(2, AngleConfig.ForceDisable.wire)
         assertEquals(3, AngleConfig.ForceEnable.wire)
 
-        // native 还有 Mode2 = 2，但那一档不对外开放，App 不提供也不接受。
-        assertEquals(1, DepthClearFixMode.entries.last().wire)
+        // NoErrorConfig: Auto, Disable, Level1, Level2
+        assertEquals(0, NoErrorConfig.Auto.wire)
+        assertEquals(1, NoErrorConfig.Disable.wire)
+        assertEquals(2, NoErrorConfig.Level1.wire)
+        assertEquals(3, NoErrorConfig.Level2.wire)
+
+        // AngleDepthClearFixMode: Disabled, Mode1, Mode2 (MaxValue is a sentinel)
+        assertEquals(0, DepthClearFixMode.Disabled.wire)
+        assertEquals(2, DepthClearFixMode.entries.last().wire)
+
+        // HideMGEnvLevel: Disabled, Level1
+        assertEquals(0, HideMGEnvLevel.Disabled.wire)
+        assertEquals(1, HideMGEnvLevel.entries.last().wire)
+
+        // FSR1_Quality_Preset: Disabled, UltraQuality, Quality, Balanced, Performance
+        assertEquals(0, Fsr1Preset.Disabled.wire)
+        assertEquals(4, Fsr1Preset.entries.last().wire)
+
         assertEquals(46, GlVersion.Gl46.wire)
         assertEquals(0, GlVersion.Default.wire)
+
+        // settings.cpp: `maxShaderCacheSize * 1024 * 1024` — the wire is MiB.
+        assertEquals(32, GlslCacheSize.Default.wire)
+        assertEquals(0, GlslCacheSize.Disabled.wire)
     }
 
     @Test
@@ -39,11 +69,17 @@ class MGConfigCodecTest {
             AngleConfig.entries,
             NoErrorConfig.entries,
             DepthClearFixMode.entries,
+            HideMGEnvLevel.entries,
             GlVersion.entries,
+            Fsr1Preset.entries,
         ).forEach { entries ->
             entries.forEachIndexed { index, option -> assertEquals(index, (option as Enum<*>).ordinal) }
         }
     }
+
+    // ═══════════════════════════════════════════════════════════════════
+    //  decode
+    // ═══════════════════════════════════════════════════════════════════
 
     @Test
     fun `an empty object decodes to the defaults`() {
@@ -54,23 +90,16 @@ class MGConfigCodecTest {
     fun `every field survives a round trip`() {
         val config = MGConfig(
             angle = AngleConfig.ForceDisable,
-            noError = NoErrorConfig.Full,
-            multidraw = MultidrawSettings(
-                globalOrder = MultidrawOrderItem.normalize(
-                    listOf(MultidrawOrderItem.Compute, MultidrawOrderItem.Unroll),
-                ),
-                exceptions = mapOf(
-                    MultidrawEntry.Elements to MultidrawEntry.Elements.normalize(
-                        listOf(MultidrawBackend.Indirect),
-                    ),
-                ),
-            ),
-            depthClearFix = DepthClearFixMode.Mode1,
             glVersion = GlVersion.Gl33,
+            hideMGEnvLevel = HideMGEnvLevel.Level1,
+            noError = NoErrorConfig.Level2,
+            depthClearFix = DepthClearFixMode.Mode1,
             glslCache = GlslCacheSize.Disabled,
+            useProgramBinaryCache = true,
             extComputeShader = true,
             extTimerQuery = false,
             extDirectStateAccess = true,
+            fsr1Setting = Fsr1Preset.Balanced,
         )
 
         val json = Gson().toJson(encode(config))
@@ -78,43 +107,22 @@ class MGConfigCodecTest {
     }
 
     @Test
-    fun `keys the app does not know survive a save`() {
-        // native 会读 hideMGEnvLevel，App 不认识它——保存时必须原样写回，否则等于替用户删设置。
-        val root = parse("""{"enableANGLE":3,"hideMGEnvLevel":1,"somethingFromTheFuture":7}""")
-
-        val config = MGConfigCodec.decode(root)
-        val encoded = encode(config, MGConfigCodec.foreignKeysOf(root))
-
-        assertEquals(1, encoded.getAsJsonObject("opengl_egl").get("hideMGEnvLevel").asInt)
-        assertEquals(7, encoded.get("somethingFromTheFuture").asInt)
-        assertEquals(3, encoded.getAsJsonObject("opengl_egl").get("enableANGLE").asInt)
-    }
-
-    @Test
-    fun `foreign keys never include keys the app owns`() {
-        val root = parse("""{"enableANGLE":3,"maxGlslCacheSize":64,"hideMGEnvLevel":1}""")
-        val foreign = MGConfigCodec.foreignKeysOf(root)
-
-        assertNull(foreign.get("enableANGLE"))
-        assertNull(foreign.get("maxGlslCacheSize"))
-        assertNull(foreign.get("hideMGEnvLevel"))
-    }
-
-    @Test
     fun `out of range values fall back to the defaults`() {
         val decoded = MGConfigCodec.decode(
-            parse("""{"enableANGLE":99,"enableNoError":-4}""")
+            parse("""{"enableANGLE":99,"enableNoError":-4,"fsr1Setting":77}""")
         )
 
         assertEquals(MGConfig.Default.angle, decoded.angle)
         assertEquals(MGConfig.Default.noError, decoded.noError)
+        assertEquals(MGConfig.Default.fsr1Setting, decoded.fsr1Setting)
     }
 
     @Test
     fun `an unlisted customGLVersion is clamped exactly like native does`() {
-        // settings.cpp: >46 -> 46, 34..39 -> 33, 1..31 -> 32, 0 -> DEFAULT_GL_VERSION.
-        // 若这些值被读成 Default(0)，下一次保存就会把它们写成 0，native 随即当成 4.0，
-        // 用户没动过任何开关，目标版本却变了。
+        // settings.cpp: <0 -> 0, >46 -> 46, 34..39 -> 33, 1..31 -> 32,
+        // 0 -> DEFAULT_GL_VERSION. The <0 step runs first, which is why -3 and
+        // 0 both resolve to Default here and to 40 there: the plugin writes 0
+        // back and settings.cpp does the promoting, once, on the C++ side.
         assertEquals(GlVersion.Gl46, GlVersion.fromWire(47))
         assertEquals(GlVersion.Gl46, GlVersion.fromWire(99))
         assertEquals(GlVersion.Gl33, GlVersion.fromWire(38))
@@ -130,62 +138,110 @@ class MGConfigCodecTest {
         GlVersion.entries.forEach { assertEquals(it, GlVersion.fromWire(it.wire)) }
 
         // 读进来再写回去，落到磁盘上的必须是 native 会夹到的那一档，不能是 0。
-        assertEquals(33, encode(MGConfigCodec.decode(parse("""{"customGLVersion":38}""")))
-            .getAsJsonObject("opengl_egl").get("customGLVersion").asInt)
+        assertEquals(
+            33,
+            encode(MGConfigCodec.decode(parse("""{"customGLVersion":38}""")))
+                .get("customGLVersion").asInt,
+        )
     }
 
     @Test
     fun `one broken field does not discard the rest of the config`() {
         // 以前 applyFromJson 里任何一个 asInt 抛异常都会让整份配置作废并被默认值覆盖。
         val decoded = MGConfigCodec.decode(
-            parse("""{"enableANGLE":{"nope":true},"multidrawOrderElements":"indirect","maxGlslCacheSize":128}""")
+            parse(
+                """{"enableANGLE":{"nope":true},"customGLVersion":"not-a-number",""" +
+                    """"maxShaderCacheSize":128}"""
+            )
         )
 
         assertEquals(MGConfig.Default.angle, decoded.angle)
-        assertEquals(
-            MultidrawBackend.Indirect,
-            decoded.multidraw.effectiveOrderFor(MultidrawEntry.Elements).first(),
-        )
+        assertEquals(MGConfig.Default.glVersion, decoded.glVersion)
         assertEquals(GlslCacheSize.Limited(128), decoded.glslCache)
     }
 
     @Test
     fun `numbers written as strings are accepted and normalised`() {
-        val decoded = MGConfigCodec.decode(parse("""{"maxGlslCacheSize":"128"}"""))
+        val decoded = MGConfigCodec.decode(parse("""{"maxShaderCacheSize":"128"}"""))
         assertEquals(GlslCacheSize.Limited(128), decoded.glslCache)
-        assertTrue(encode(decoded).getAsJsonObject("shaderCache").get("maxGlslCacheSize").asJsonPrimitive.isNumber)
+        assertTrue(encode(decoded).get("maxShaderCacheSize").asJsonPrimitive.isNumber)
     }
 
     @Test
     fun `booleans follow the native greater-than-zero rule`() {
         val decoded = MGConfigCodec.decode(
-            parse("""{"enableExtComputeShader":2,"enableExtTimerQuery":0,"enableExtDirectStateAccess":-1}""")
+            parse(
+                """{"enableExtComputeShader":2,"enableExtTimerQuery":0,""" +
+                    """"enableExtDirectStateAccess":-1,"useProgramBinaryCache":9}"""
+            )
         )
 
         assertTrue(decoded.extComputeShader)
         assertEquals(false, decoded.extTimerQuery)
         assertEquals(false, decoded.extDirectStateAccess)
+        assertTrue(decoded.useProgramBinaryCache)
 
         val encoded = encode(decoded)
-        assertEquals(1, encoded.getAsJsonObject("extensions").get("enableExtComputeShader").asInt)
-        assertEquals(0, encoded.getAsJsonObject("extensions").get("enableExtTimerQuery").asInt)
+        assertEquals(1, encoded.get("enableExtComputeShader").asInt)
+        assertEquals(0, encoded.get("enableExtTimerQuery").asInt)
+        assertEquals(1, encoded.get("useProgramBinaryCache").asInt)
     }
 
     @Test
     fun `every non-positive cache size means disabled, exactly like native reads it`() {
-        // native: `if (config_get_int("maxGlslCacheSize") > 0)` —— 否则缓存大小为 0，即不缓存。
+        // settings.cpp: `if (config_get_int("maxShaderCacheSize") > 0)` —— 否则
+        // max_shader_cache_size = 0，即不缓存。
         assertEquals(GlslCacheSize.Disabled, GlslCacheSize.fromWire(-1))
         assertEquals(GlslCacheSize.Disabled, GlslCacheSize.fromWire(0))
         assertEquals(GlslCacheSize.Disabled, GlslCacheSize.fromWire(-7))
         assertEquals(GlslCacheSize.Limited(64), GlslCacheSize.fromWire(64))
         assertEquals(GlslCacheSize.Default, GlslCacheSize.fromWire(null))
 
-        // 关闭状态写回磁盘统一用 -1，与历史配置一致。
-        assertEquals(-1, GlslCacheSize.Disabled.wire)
-        assertEquals(-1, encode(MGConfigCodec.decode(parse("""{"maxGlslCacheSize":0}""")))
-            .get("maxGlslCacheSize").asInt)
+        assertEquals(0, GlslCacheSize.Disabled.wire)
+        assertEquals(
+            0,
+            encode(MGConfigCodec.decode(parse("""{"maxShaderCacheSize":0}""")))
+                .get("maxShaderCacheSize").asInt,
+        )
 
         assertThrows(IllegalArgumentException::class.java) { GlslCacheSize.Limited(0) }
+    }
+
+    @Test
+    fun `the old cache key still sets the size and is scrubbed on save`() {
+        // The bug this guards against: the plugin wrote `maxGlslCacheSize` while
+        // settings.cpp reads `maxShaderCacheSize`, so the reader saw -1, took
+        // `> 0` as false, and every conversion cache in the renderer was off.
+        val root = parse("""{"maxGlslCacheSize":128}""")
+
+        val config = MGConfigCodec.decode(root)
+        assertEquals(GlslCacheSize.Limited(128), config.glslCache)
+
+        val out = encode(config, MGConfigCodec.foreignKeysOf(root))
+        assertEquals(128, out.get("maxShaderCacheSize").asInt)
+        assertNull(out.get("maxGlslCacheSize"))
+    }
+
+    @Test
+    fun `the nested layout this file used to carry is still read`() {
+        val root = parse(
+            """{"opengl_egl":{"enableANGLE":3},"errorHandling":{"enableNoError":2},""" +
+                """"shaderCache":{"maxGlslCacheSize":64},"extensions":{"enableExtComputeShader":1}}"""
+        )
+
+        val config = MGConfigCodec.decode(root)
+        assertEquals(AngleConfig.ForceEnable, config.angle)
+        assertEquals(NoErrorConfig.Level1, config.noError)
+        assertEquals(GlslCacheSize.Limited(64), config.glslCache)
+        assertTrue(config.extComputeShader)
+
+        // …and the flat key still wins over the nested one it shadows.
+        assertEquals(
+            AngleConfig.DisableIfPossible,
+            MGConfigCodec.decode(
+                parse("""{"enableANGLE":0,"opengl_egl":{"enableANGLE":3}}""")
+            ).angle,
+        )
     }
 
     @Test
@@ -198,86 +254,117 @@ class MGConfigCodecTest {
         assertEquals(512, GlslCacheSize.Limited(512).mebibytesOrZero)
     }
 
+    // ═══════════════════════════════════════════════════════════════════
+    //  shape — flat, at the root, and nothing else
+    // ═══════════════════════════════════════════════════════════════════
+
     @Test
-    fun `the defaults are the same ones the previous implementation wrote`() {
-        // Chaves vivem em seções nested; o teste navega até elas via
-        // getAsJsonObject(<section>).get(<key>).
+    fun `the defaults are written flat, at the root, and nothing else`() {
         val encoded = encode(MGConfig.Default)
 
-        assertEquals(1, encoded.getAsJsonObject("opengl_egl").get("enableANGLE").asInt)
-        assertEquals(0, encoded.getAsJsonObject("errorHandling").get("enableNoError").asInt)
-        assertEquals(1, encoded.getAsJsonObject("extensions").get("enableExtTimerQuery").asInt)
-        assertEquals(0, encoded.getAsJsonObject("extensions").get("enableExtComputeShader").asInt)
-        assertEquals(0, encoded.getAsJsonObject("extensions").get("enableExtDirectStateAccess").asInt)
-        assertEquals(32, encoded.getAsJsonObject("shaderCache").get("maxGlslCacheSize").asInt)
-        // MultiDraw 默认顺序、无例外 = 一个键都不写。
-        assertNull(encoded.getAsJsonObject("multidrawOrder").get("_global"))
-        MultidrawEntry.entries.forEach { assertNull(encoded.get(it.orderKey)) }
+        assertEquals(1, encoded.get("enableANGLE").asInt)
+        assertEquals(0, encoded.get("customGLVersion").asInt)
+        assertEquals(0, encoded.get("hideMGEnvLevel").asInt)
+        assertEquals(0, encoded.get("enableNoError").asInt)
+        assertEquals(0, encoded.get("angleDepthClearFixMode").asInt)
+        assertEquals(32, encoded.get("maxShaderCacheSize").asInt)
+        assertEquals(0, encoded.get("useProgramBinaryCache").asInt)
+        assertEquals(0, encoded.get("enableExtComputeShader").asInt)
+        assertEquals(1, encoded.get("enableExtTimerQuery").asInt)
+        assertEquals(0, encoded.get("enableExtDirectStateAccess").asInt)
+        assertEquals(0, encoded.get("fsr1Setting").asInt)
+
+        // Exactly the keys the renderer reads, all at the root. A nested key is
+        // one config_get_int can never see, so an extra one here is a setting
+        // that silently does nothing.
+        assertEquals(11, encoded.size())
+    }
+
+    @Test
+    fun `nothing nested survives a save`() {
+        val root = parse(
+            """{"meta":{"schema":3},"opengl_egl":{"enableANGLE":3},""" +
+                """"shaderCache":{"maxGlslCacheSize":64},"multidrawOrder":{"_global":"unroll"},""" +
+                """"diagnostics":{"enabled":true},"somethingFromTheFuture":7}"""
+        )
+
+        val out = encode(MGConfigCodec.decode(root), MGConfigCodec.foreignKeysOf(root))
+
+        assertNull(out.get("meta"))
+        assertNull(out.get("opengl_egl"))
+        assertNull(out.get("shaderCache"))
+        assertNull(out.get("multidrawOrder"))
+        assertNull(out.get("diagnostics"))
+        assertNull(out.get("maxGlslCacheSize"))
+
+        // The value carried across; only its container changed.
+        assertEquals(3, out.get("enableANGLE").asInt)
+        assertEquals(64, out.get("maxShaderCacheSize").asInt)
+
+        // A key of a future reader still survives a save untouched.
+        assertEquals(7, out.get("somethingFromTheFuture").asInt)
+    }
+
+    @Test
+    fun `keys the app does not know survive a save`() {
+        val root = parse("""{"enableANGLE":3,"somethingFromTheFuture":7}""")
+
+        val config = MGConfigCodec.decode(root)
+        val encoded = encode(config, MGConfigCodec.foreignKeysOf(root))
+
+        assertEquals(7, encoded.get("somethingFromTheFuture").asInt)
+        assertEquals(3, encoded.get("enableANGLE").asInt)
+    }
+
+    @Test
+    fun `foreign keys never include keys the app owns`() {
+        val root = parse("""{"enableANGLE":3,"maxGlslCacheSize":64,"hideMGEnvLevel":1}""")
+        val foreign = MGConfigCodec.foreignKeysOf(root)
+
+        assertNull(foreign.get("enableANGLE"))
+        assertNull(foreign.get("hideMGEnvLevel"))
+        assertNull(foreign.get("maxGlslCacheSize"))
+    }
+
+    @Test
+    fun `keys the lib never reads are scrubbed on save`() {
+        // 控制一个 settings.cpp 不读的键，等于给用户一个什么都不做的开关。
+        val root = parse(
+            """{"forceDepthPrecisionFix":true,"disableComputeOnWeakGpu":false,""" +
+                """"bufferUploadMode":2,"textureSwizzleMode":1,"maxAnisotropyOverride":8,""" +
+                """"fsr1Version":2,"fsr1Sharpness":0.4,"multidrawEngine":"imdbi",""" +
+                """"somethingFromTheFuture":7}"""
+        )
+
+        val out = encode(MGConfigCodec.decode(root), MGConfigCodec.foreignKeysOf(root))
+
+        listOf(
+            "forceDepthPrecisionFix", "disableComputeOnWeakGpu", "bufferUploadMode",
+            "textureSwizzleMode", "maxAnisotropyOverride", "fsr1Version", "fsr1Sharpness",
+            "multidrawEngine",
+        ).forEach { assertNull(it, out.get(it)) }
+
+        assertEquals(7, out.get("somethingFromTheFuture").asInt)
+    }
+
+    @Test
+    fun `all three generations of legacy multidraw keys are dropped on save`() {
+        val root = parse(
+            """{"multidrawMode":5,"multidrawModeElements":"multibasevertex",""" +
+                """"multidrawDisableBackends":"compute","multidrawOrder":"unroll","hideMGEnvLevel":1}"""
+        )
+        val encoded = encode(MGConfigCodec.decode(root), MGConfigCodec.foreignKeysOf(root))
+
         assertNull(encoded.get("multidrawMode"))
+        assertNull(encoded.get("multidrawModeElements"))
         assertNull(encoded.get("multidrawDisableBackends"))
-        assertEquals(0, encoded.getAsJsonObject("errorHandling").get("angleDepthClearFixMode").asInt)
-        assertEquals(0, encoded.getAsJsonObject("opengl_egl").get("customGLVersion").asInt)
+        assertNull(encoded.get("multidrawOrder"))
+        assertEquals(1, encoded.get("hideMGEnvLevel").asInt)
     }
 
-    @Test
-    fun `the global order round-trips as a comma separated name list`() {
-        val decoded = MGConfigCodec.decode(
-            parse("""{"multidrawOrder":"compute, unroll ; nonsense, native, compute"}""")
-        )
-
-        // 未知名丢弃、重复项保留首个、漏项按默认顺序补齐——全 8 项的置换。
-        val order = decoded.multidraw.globalOrder
-        assertEquals(MultidrawOrderItem.entries.size, order.size)
-        assertEquals(MultidrawOrderItem.Compute, order[0])
-        assertEquals(MultidrawOrderItem.Unroll, order[1])
-        assertEquals(MultidrawOrderItem.Native, order[2])
-        assertEquals(MultidrawOrderItem.entries.toSet(), order.toSet())
-
-        assertEquals(
-            "compute,unroll,native,multiindirect,multibasevertex,multiarrays,indirect,basevertex",
-            encode(decoded).getAsJsonObject("multidrawOrder").get("_global").asString,
-        )
-    }
-
-    @Test
-    fun `an exception key means an independent order for that function`() {
-        val decoded = MGConfigCodec.decode(
-            // basevertex 对 glMultiDrawElements 不是独立实现，native 也会拒绝它。
-            parse("""{"multidrawOrderElements":"indirect, basevertex, native"}""")
-        )
-
-        assertTrue(decoded.multidraw.hasException(MultidrawEntry.Elements))
-        assertEquals(false, decoded.multidraw.hasException(MultidrawEntry.Arrays))
-
-        val order = decoded.multidraw.effectiveOrderFor(MultidrawEntry.Elements)
-        assertEquals(MultidrawEntry.Elements.implemented.toSet(), order.toSet())
-        assertEquals(MultidrawBackend.Indirect, order[0])
-        assertTrue(MultidrawBackend.BaseVertex !in order)
-
-        assertEquals(
-            "indirect,multiarrays,multiindirect,multibasevertex,unroll",
-            encode(decoded).getAsJsonObject("multidrawOrder").get("multidrawOrderElements").asString,
-        )
-    }
-
-    @Test
-    fun `the native item expands per function and deduplicates`() {
-        // native 在 glMultiDrawArrays 上落到 multiarrays；后面的 multiarrays 重复项被吃掉。
-        val settings = MultidrawSettings()
-        assertEquals(
-            listOf(MultidrawBackend.MultiArrays, MultidrawBackend.MultiIndirect, MultidrawBackend.Unroll),
-            settings.globalOrderFor(MultidrawEntry.Arrays),
-        )
-        assertEquals(
-            listOf(MultidrawBackend.MultiIndirect, MultidrawBackend.Indirect),
-            settings.globalOrderFor(MultidrawEntry.ArraysIndirect),
-        )
-        // ElementsBaseVertex 的 native 是 multibasevertex，排最前。
-        assertEquals(
-            MultidrawBackend.MultiBaseVertex,
-            settings.globalOrderFor(MultidrawEntry.ElementsBaseVertex).first(),
-        )
-    }
+    // ═══════════════════════════════════════════════════════════════════
+    //  MultiDraw bench vocabulary — reported, never written
+    // ═══════════════════════════════════════════════════════════════════
 
     @Test
     fun `order names are parsed the way native parses them`() {
@@ -288,11 +375,10 @@ class MGConfigCodecTest {
         assertNull(MultidrawBackend.parse("nonsense"))
         assertNull(MultidrawBackend.parse(""))
         assertNull(MultidrawBackend.parse(null))
-        assertEquals(MultidrawOrderItem.Native, MultidrawOrderItem.parse(" Native "))
     }
 
     @Test
-    fun `keys are exactly the names native accepts`() {
+    fun `backend keys are exactly the names native accepts`() {
         // 这些名字是和 native 的 k_md_backend_names / k_md_entries 共享的契约。
         assertEquals(
             listOf(
@@ -303,35 +389,32 @@ class MGConfigCodecTest {
         )
         assertEquals(
             listOf(
-                "native", "multiindirect", "multibasevertex", "multiarrays",
-                "indirect", "basevertex", "unroll", "compute",
+                "glMultiDrawArrays",
+                "glMultiDrawElements",
+                "glMultiDrawElementsBaseVertex",
+                "glMultiDrawArraysIndirect",
+                "glMultiDrawElementsIndirect",
             ),
-            MultidrawOrderItem.entries.map { it.key },
-        )
-        assertEquals(
-            listOf(
-                "multidrawOrderArrays",
-                "multidrawOrderElements",
-                "multidrawOrderElementsBaseVertex",
-                "multidrawOrderArraysIndirect",
-                "multidrawOrderElementsIndirect",
-            ),
-            MultidrawEntry.entries.map { it.orderKey },
+            MultidrawEntry.entries.map { it.glFunction },
         )
     }
 
     @Test
-    fun `all three generations of legacy multidraw keys are dropped on save`() {
-        // native 已经不读它们，留着只会让它每次启动都打弃用警告。
-        val root = parse(
-            """{"multidrawMode":5,"multidrawModeElements":"multibasevertex",""" +
-                """"multidrawDisableBackends":"compute","hideMGEnvLevel":1}"""
+    fun `the native backend lands first per entry and unsupported ones drop`() {
+        assertEquals(
+            MultidrawBackend.MultiArrays,
+            MultidrawEntry.Arrays.normalize(emptyList()).first(),
         )
-        val encoded = encode(MGConfigCodec.decode(root), MGConfigCodec.foreignKeysOf(root))
-
-        assertNull(encoded.get("multidrawMode"))
-        assertNull(encoded.get("multidrawModeElements"))
-        assertNull(encoded.get("multidrawDisableBackends"))
-        assertEquals(1, encoded.getAsJsonObject("opengl_egl").get("hideMGEnvLevel").asInt)
+        assertEquals(
+            MultidrawBackend.MultiBaseVertex,
+            MultidrawEntry.ElementsBaseVertex.normalize(emptyList()).first(),
+        )
+        // basevertex 对 glMultiDrawElements 不是独立实现。
+        assertTrue(MultidrawBackend.BaseVertex !in MultidrawEntry.Elements.implemented)
+        // normalize keeps only implemented backends, then puts them in native order.
+        assertEquals(
+            MultidrawEntry.Elements.implemented,
+            MultidrawEntry.Elements.normalize(listOf(MultidrawBackend.BaseVertex)),
+        )
     }
 }

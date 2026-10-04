@@ -65,23 +65,6 @@ fun MiuixApp(controller: AppController) {
             controller.snackbar.collect { snackbarHostState.showSnackbar(it.toString()) }
         }
 
-        // 换了 GLES 驱动，手上那份排序是在旧驱动上量的。用 snackbar 而不是对话框：
-        // 这只是句提醒，用户正忙着调设置，不该被拦下来。
-        val outdatedMessage = stringResource(R.string.md_bench_outdated)
-        val outdatedAction = stringResource(R.string.md_bench_outdated_action)
-        LaunchedEffect(controller) {
-            controller.benchOutdated.collect {
-                val result = snackbarHostState.showSnackbar(
-                    message = outdatedMessage,
-                    actionLabel = outdatedAction,
-                    duration = SnackbarDuration.Long,
-                )
-                if (result == SnackbarResult.ActionPerformed) {
-                    controller.runMultidrawBench(AppController.BenchTarget.AllEntries)
-                }
-            }
-        }
-
         BackHandler(enabled = subPage != null) { controller.navigateBack() }
 
         // 垂直方向紧张（通常是手机横屏）时导航让到侧边，理由与 Material 皮肤相同：

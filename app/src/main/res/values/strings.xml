@@ -16,13 +16,13 @@
 
     <string name="menu_item_about">About</string>
 
-    <string name="option_glsl_cache">Max GLSL Cache Size</string>
+    <string name="option_glsl_cache">Max Shader Cache Size</string>
     <string name="option_glsl_cache_off">Off</string>
     <string name="option_glsl_cache_value" translatable="false">%1$d MiB</string>
     <string name="option_glsl_cache_delete">Delete cached shaders (%1$s)</string>
     <string name="option_glsl_cache_size_mib" translatable="false">%1$.1f MiB</string>
     <string name="option_glsl_cache_size_kib" translatable="false">%1$.0f KiB</string>
-    <string name="option_glsl_cache_delete_failed">Could not delete the GLSL cache: %s</string>
+    <string name="option_glsl_cache_delete_failed">Could not delete the shader cache: %s</string>
     <string name="option_angle">Use ANGLE as OpenGL ES driver</string>
     <string name="option_angle_disable_if_possible">Prefer Disabled</string>
     <string name="option_angle_enable_if_possible">Prefer Enabled</string>
@@ -163,7 +163,7 @@
     <string name="menu_item_remove">Remove MobileGlues related files</string>
     <string name="remove_mg_files_message"><![CDATA[This action deletes every file MobileGlues and this plugin have created for themselves in the MG folder. This includes:<br/><br/>
  • <b>Configuration:</b> config.json, plus any leftover temporary write file or corrupt backup.<br/>
- • <b>Cache:</b> the GLSL cache MobileGlues builds at runtime (glsl_cache.tmp, used to speed up loading).<br/>
+ • <b>Cache:</b> the shader cache MobileGlues builds at runtime (shadercache/, holding compiled ESSL and driver program binaries).<br/>
  • <b>Logs and stats:</b> the runtime log (latest.log) and the launch-count file (stats.json).<br/><br/>
 Only these files — the ones MobileGlues and this plugin created themselves — are deleted; anything else you placed in the MG folder is left untouched. If the MG folder ends up empty afterward, the folder itself is removed too.<br/><br/>
 Please note, this action is <b><font color="@colorError">irreversible</font></b>. Once you click "OK", the files above will be permanently deleted and cannot be recovered. If you are going to use MobileGlues again in the future, you will need to reconfigure it.<br/><br/>
@@ -214,6 +214,7 @@ Please note, this action is <b><font color="@colorError">irreversible</font></b>
 
     <string name="settings_group_plugin">Plugin</string>
     <string name="settings_group_render">Rendering</string>
+    <string name="settings_group_upscaling">Upscaling</string>
     <string name="settings_group_cache">Shader cache</string>
     <string name="settings_group_ext">Extensions</string>
     <string name="settings_group_advanced">Advanced</string>
@@ -231,7 +232,7 @@ Please note, this action is <b><font color="@colorError">irreversible</font></b>
 
     <string name="privacy_intro">This app is free software that runs completely offline. Here is exactly what it touches.</string>
     <string name="privacy_files_title">Files it reads and writes</string>
-    <string name="privacy_files_body">Only the MG folder in your internal storage: config.json (your renderer settings), stats.json (how many times a game has loaded the renderer), glsl_cache.tmp (shader cache) and MobileGlues log files. Nothing outside that folder is read, modified or deleted.</string>
+    <string name="privacy_files_body">Only the MG folder in your internal storage: config.json (your renderer settings), stats.json (how many times a game has loaded the renderer), shadercache/ (compiled shaders) and MobileGlues log files. Nothing outside that folder is read, modified or deleted.</string>
     <string name="privacy_permission_title">Why storage permission</string>
     <string name="privacy_permission_body">The renderer (a native library inside your game) reads /sdcard/MG directly, so this app needs a way to write the same folder. You choose between “All files access” and granting just the MG folder via the system file picker (SAF), and you can revoke either at any time in system settings.</string>
     <string name="privacy_local_title">What is stored locally</string>
@@ -334,19 +335,15 @@ Please note, this action is <b><font color="@colorError">irreversible</font></b>
     <string name="option_program_binary_cache">Program Binary Cache</string>
     <string name="option_program_binary_cache_desc">Cache compiled GPU program binaries on disk to reduce shader compilation stutter</string>
 
-    <string name="option_fsr1_sharpness">FSR1 sharpness</string>
-    <string name="option_fsr1_sharpness_value">%1$.2f</string>
-    <string name="option_fsr1_version">FSR version</string>
-    <string name="option_fsr1_version_1">FSR1 (5-tap, sharper)</string>
-    <string name="option_fsr1_version_2">FSR2 (3-tap, faster)</string>
-    <string name="option_fsr2_sharpness">FSR2 sharpness</string>
-    <string name="option_fsr_enable_sharpening">Enable sharpening</string>
-    <string name="option_fsr_enable_sharpening_desc">Off = pure blit, no sharpening</string>
+    <string name="option_fsr1_preset">FSR1 quality preset</string>
+    <string name="option_fsr1_preset_off">Off</string>
+    <string name="option_fsr1_preset_ultra_quality">Ultra Quality</string>
+    <string name="option_fsr1_preset_quality">Quality</string>
+    <string name="option_fsr1_preset_balanced">Balanced</string>
+    <string name="option_fsr1_preset_performance">Performance</string>
+    <string name="hint_fsr1_preset">Chooses the internal render resolution the renderer upscales from. Lower presets draw fewer pixels.</string>
 
     <!-- NoErrorConfig (schema v3 rename) -->
-    <string name="option_no_error_none">None</string>
-    <string name="option_no_error_partial">Partial</string>
-    <string name="option_no_error_full">Full</string>
 
     <!-- DepthClearFixMode -->
     <string name="option_angle_clear_workaround_enable_2">Mode 2</string>
@@ -388,7 +385,6 @@ Please note, this action is <b><font color="@colorError">irreversible</font></b>
     <string name="warn_ext_gl43">Increases the surface for driver bugs. Do not enable unless a specific mod requires GL 4.3.</string>
     <string name="hint_force_depth_precision">Enable only if you see depth glitches caused by 24-bit precision problems.</string>
     <string name="warn_fsr_with_angle">FSR together with ANGLE is known to reduce performance on some devices.</string>
-    <string name="hint_fsr_version">5-tap is sharper and more expensive. 3-tap is blurrier and better suited to tile-based GPUs (PowerVR, Mali).</string>
     <string name="hint_max_anisotropy">16x may cost around 5% FPS on tile-based GPUs. Use 4x if FPS is critical.</string>
     <string name="hint_texture_swizzle">Force BGRA if textures look colour-inverted. Auto lets the driver decide.</string>
     <string name="hint_diag_master">When off, everything below is ignored. When on, the overhead is roughly 0.5% FPS.</string>

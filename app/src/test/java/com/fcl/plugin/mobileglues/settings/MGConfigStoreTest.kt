@@ -55,6 +55,14 @@ class MGConfigStoreTest {
     private fun readConfig(): JsonObject =
         JsonParser.parseString(configFile.readText()).asJsonObject
 
+    private val cacheDir: File get() = File(mgDirectory, "shadercache")
+
+    /** 放一份 7 字节的产物，和 native 真正会写进去的东西同一个位置。 */
+    private fun cachedShaderFile(): File {
+        cacheDir.mkdirs()
+        return File(cacheDir, "a1b2c3d4.essl").apply { writeText("shaders") }
+    }
+
     @Test
     fun `a missing config file is reported as missing and only created on flush`() =
         runTest(dispatcher) {
@@ -127,7 +135,9 @@ class MGConfigStoreTest {
 
         val root = readConfig()
         assertEquals(3, root.get("enableANGLE").asInt)
-        assertEquals(-1, root.get("maxGlslCacheSize").asInt)
+        // 现在写的就是 settings.cpp 读的那个名字；关掉 = 0，`> 0` 为假，即不缓存。
+        assertEquals(0, root.get("maxShaderCacheSize").asInt)
+        assertNull(root.get("maxGlslCacheSize"))
         assertEquals(1, root.get("hideMGEnvLevel").asInt)
     }
 
@@ -157,35 +167,34 @@ class MGConfigStoreTest {
     }
 
     @Test
-    fun `turning the cache off does not touch the cache file`() = runTest(dispatcher) {
-        val cacheFile = File(mgDirectory, "glsl_cache.tmp")
-        cacheFile.writeText("shaders")  // 7 字节
-        configFile.writeText("""{"maxGlslCacheSize":64}""")
+    fun `turning the cache off does not touch the cached shaders`() = runTest(dispatcher) {
+        val cached = cachedShaderFile()
+        configFile.writeText("""{"maxShaderCacheSize":64}""")
         val store = newStore()
         store.load()
 
         store.update { it.copy(glslCache = GlslCacheSize.Disabled) }
         store.flush()
 
-        assertTrue("关闭缓存只改配置，不能顺手删文件", cacheFile.exists())
-        assertEquals(7L, store.glslCacheBytes.value)
-        assertEquals(-1, readConfig().get("maxGlslCacheSize").asInt)
+        assertTrue("关闭缓存只改配置，不能顺手删文件", cached.exists())
+        assertEquals(7L, store.shaderCacheBytes.value)
+        assertEquals(0, readConfig().get("maxShaderCacheSize").asInt)
     }
 
     @Test
-    fun `clearing the cache deletes the file and updates the observable presence`() =
+    fun `clearing the cache empties the directory and updates the observable presence`() =
         runTest(dispatcher) {
-            val cacheFile = File(mgDirectory, "glsl_cache.tmp")
-            cacheFile.writeText("shaders")  // 7 字节
+            val cached = cachedShaderFile()
             configFile.writeText("{}")
             val store = newStore()
             store.load()
-            assertEquals(7L, store.glslCacheBytes.value)
+            assertEquals(7L, store.shaderCacheBytes.value)
 
-            assertTrue(store.clearGlslCache().isSuccess)
+            assertTrue(store.clearShaderCache().isSuccess)
 
-            assertFalse(cacheFile.exists())
-            assertNull("删掉之后按钮要能立刻收回去", store.glslCacheBytes.value)
+            assertFalse("产物要删干净", cached.exists())
+            assertTrue("目录要留着，渲染器下一次就要往里写", cacheDir.isDirectory)
+            assertNull("删掉之后按钮要能立刻收回去", store.shaderCacheBytes.value)
         }
 
     @Test
@@ -194,8 +203,9 @@ class MGConfigStoreTest {
         val store = newStore()
         store.load()
 
-        assertNull(store.glslCacheBytes.value)
-        assertTrue(store.clearGlslCache().isSuccess)
+        assertNull(store.shaderCacheBytes.value)
+        assertTrue(store.clearShaderCache().isSuccess)
+        assertNull("清完还是没有产物", store.shaderCacheBytes.value)
     }
 
     @Test

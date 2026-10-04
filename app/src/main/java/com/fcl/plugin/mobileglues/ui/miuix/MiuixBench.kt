@@ -1,9 +1,5 @@
 package com.fcl.plugin.mobileglues.ui.miuix
 
-import top.yukonga.miuix.kmp.basic.TabRowWithContour
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
@@ -31,287 +27,47 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.fromHtml
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.fromHtml
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.fcl.plugin.mobileglues.R
-import com.fcl.plugin.mobileglues.settings.MGConfig
 import com.fcl.plugin.mobileglues.settings.MultidrawBenchQuality
 import com.fcl.plugin.mobileglues.settings.MultidrawEntry
-import com.fcl.plugin.mobileglues.settings.MultidrawOrderItem
-import com.fcl.plugin.mobileglues.settings.MultidrawSettings
 import com.fcl.plugin.mobileglues.ui.AppController
 import com.fcl.plugin.mobileglues.ui.Responsive
-import com.fcl.plugin.mobileglues.ui.DragReorderColumn
+import java.util.Locale
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.InfiniteProgressIndicator
 import top.yukonga.miuix.kmp.basic.LinearProgressIndicator
 import top.yukonga.miuix.kmp.basic.SmallTitle
 import top.yukonga.miuix.kmp.basic.Surface
+import top.yukonga.miuix.kmp.basic.TabRowWithContour
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.extra.SuperDialog
 import top.yukonga.miuix.kmp.theme.MiuixTheme
-import java.util.Locale
 
-/** 折叠状态下的一句话摘要。 */
-@Composable
-fun miuixMultidrawSummary(settings: MultidrawSettings): String {
-    val exceptionCount = settings.exceptions.size
-    if (!settings.globalCustomized && exceptionCount == 0) {
-        return stringResource(R.string.md_summary_default)
-    }
-    val global = if (settings.globalCustomized) {
-        stringResource(R.string.md_summary_global_custom)
-    } else {
-        stringResource(R.string.md_summary_global_default)
-    }
-    return if (exceptionCount == 0) {
-        global
-    } else {
-        "$global · ${stringResource(R.string.md_summary_exception_count, exceptionCount)}"
-    }
-}
-
-/** MultiDraw 排序设置（Miuix 版）：全局 8 项排序 + 每函数例外排序 + benchmark。 */
-/**
- * MultiDraw — dividido em duas visões internas.
+/*
+ * MultiDraw benchmark dialogs.
  *
- * Antes era um scroll único: a ordem global (que raramente muda) ficava
- * intercalada com os cinco switches de exceção (onde o usuário passa 90% do
- * tempo). Duas abas mantêm a mesma informação sem obrigar quem está tunando
- * uma função a rolar por cima da lista global toda vez.
- */
-@Composable
-fun ColumnScope.MiuixMultidrawOrderContent(controller: AppController, config: MGConfig) {
-    var tab by remember { mutableStateOf(0) }
-    val tabs = listOf(
-        stringResource(R.string.md_tab_global),
-        stringResource(R.string.md_tab_exceptions),
-    )
-
-    TabRowWithContour(
-        tabs = tabs,
-        selectedTabIndex = tab,
-        onTabSelected = { tab = it },
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 4.dp),
-    )
-
-    when (tab) {
-        0 -> MiuixMultidrawGlobalTab(controller, config)
-        1 -> MiuixMultidrawExceptionsTab(controller, config)
-    }
-}
-
-@Composable
-private fun MiuixMultidrawGlobalTab(controller: AppController, config: MGConfig) {
-    val context = LocalContext.current
-    val settings = config.multidraw
-
-    MiuixSectionHint(stringResource(R.string.md_order_hint))
-
-    DragReorderColumn(
-        items = settings.globalOrder,
-        onMove = controller::moveMultidrawGlobalItem,
-    ) { index, item, dragging, handle ->
-        MiuixOrderRow(
-            position = index + 1,
-            label = item.label(context).toString(),
-            sublabel = if (item == MultidrawOrderItem.Native) {
-                stringResource(R.string.md_item_native_desc)
-            } else {
-                null
-            },
-            dragging = dragging,
-            handle = handle,
-        )
-    }
-
-    AnimatedVisibility(visible = settings.globalCustomized, enter = fadeIn(), exit = fadeOut()) {
-        TextButton(
-            text = stringResource(R.string.md_reset_default),
-            onClick = controller::resetMultidrawGlobalOrder,
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
-        )
-    }
-}
-
-@Composable
-private fun MiuixMultidrawExceptionsTab(controller: AppController, config: MGConfig) {
-    val context = LocalContext.current
-    val settings = config.multidraw
-
-    MiuixSectionHint(stringResource(R.string.md_exceptions_hint))
-
-    // 跑分只测得出「这个函数上哪个方案快」，那就把结果按函数交出去，别硬合成一份全局顺序。
-    TextButton(
-        text = stringResource(R.string.md_bench_run_all),
-        onClick = { controller.runMultidrawBench(AppController.BenchTarget.AllEntries) },
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
-        colors = ButtonDefaults.textButtonColorsPrimary(),
-    )
-
-    MultidrawEntry.entries.forEach { entry ->
-        val hasException = settings.hasException(entry)
-        MiuixSwitchRow(
-            title = entry.glFunction,
-            summary = if (hasException) {
-                stringResource(R.string.md_exception_on)
-            } else {
-                stringResource(R.string.md_exception_off)
-            },
-            checked = hasException,
-            onCheckedChange = { controller.setMultidrawException(entry, it) },
-        )
-        AnimatedVisibility(
-            visible = hasException,
-            enter = expandVertically() + fadeIn(),
-            exit = shrinkVertically() + fadeOut(),
-        ) {
-            Column(modifier = Modifier.fillMaxWidth().padding(start = 12.dp)) {
-                DragReorderColumn(
-                    items = settings.effectiveOrderFor(entry),
-                    onMove = { from, to ->
-                        controller.moveMultidrawExceptionItem(entry, from, to)
-                    },
-                ) { index, backend, dragging, handle ->
-                    MiuixOrderRow(
-                        position = index + 1,
-                        label = backend.label(context).toString(),
-                        sublabel = null,
-                        dragging = dragging,
-                        handle = handle,
-                    )
-                }
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    TextButton(
-                        text = stringResource(R.string.md_bench_run_entry),
-                        onClick = {
-                            controller.runMultidrawBench(AppController.BenchTarget.Entry(entry))
-                        },
-                        modifier = Modifier.weight(1f),
-                    )
-                    AnimatedVisibility(
-                        visible = settings.exceptionCustomized(entry),
-                        enter = fadeIn(),
-                        exit = fadeOut(),
-                    ) {
-                        TextButton(
-                            text = stringResource(R.string.md_reset_default),
-                            onClick = { controller.resetMultidrawExceptionOrder(entry) },
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun MiuixSectionHint(text: String) {
-    Text(
-        text = text,
-        style = MiuixTheme.textStyles.footnote2,
-        color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-        modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
-    )
-}
-
-/** 一行可排序项：序号 + 名称 + 拖动手柄；被拖起来的那行浮到卡片上方。 */
-@Composable
-private fun MiuixOrderRow(
-    position: Int,
-    label: String,
-    sublabel: String?,
-    dragging: Boolean,
-    handle: Modifier,
-) {
-    // HyperOS 的拖动是「托起来一块」而不是投影，所以只换底色不加阴影。
-    val background by animateColorAsState(
-        targetValue = if (dragging) {
-            MiuixTheme.colorScheme.secondaryContainer
-        } else {
-            Color.Transparent
-        },
-        label = "drag-background",
-    )
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 8.dp)
-            .clip(RoundedCornerShape(14.dp))
-            .background(background)
-            .heightIn(min = 46.dp)
-            .padding(start = 8.dp),
-    ) {
-        Surface(
-            shape = CircleShape,
-            color = MiuixTheme.colorScheme.secondaryContainer,
-            modifier = Modifier.size(22.dp),
-        ) {
-            Box(contentAlignment = Alignment.Center) {
-                Text(
-                    text = position.toString(),
-                    style = MiuixTheme.textStyles.footnote1,
-                    color = MiuixTheme.colorScheme.onSecondaryContainer,
-                )
-            }
-        }
-        Column(modifier = Modifier.weight(1f).padding(start = 12.dp, top = 6.dp, bottom = 6.dp)) {
-            Text(
-                text = label,
-                style = MiuixTheme.textStyles.body1,
-                color = MiuixTheme.colorScheme.onSurface,
-            )
-            if (sublabel != null) {
-                Text(
-                    text = sublabel,
-                    style = MiuixTheme.textStyles.footnote2,
-                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                )
-            }
-        }
-        Box(
-            contentAlignment = Alignment.Center,
-            modifier = handle.size(44.dp),
-        ) {
-            Icon(
-                painter = painterResource(R.drawable.ic_drag_handle),
-                contentDescription = stringResource(R.string.md_order_drag_handle),
-                tint = if (dragging) {
-                    MiuixTheme.colorScheme.primary
-                } else {
-                    MiuixTheme.colorScheme.onSurfaceVariantActions
-                },
-                modifier = Modifier.size(22.dp),
-            )
-        }
-    }
-}
-
-// ---- Benchmark 对话框 ----
-
-/**
- * 选一个启动器把 ANGLE 借来。
- *
- * 这是把别的应用的原生代码载入本进程，所以选择必须是用户明确做出的，而且要把这句话
- * 当着他的面说清楚——不能因为「只有一个来源」就替他默认。
+ * Split out of the old MiuixMultidraw.kt, which also held the per-entry order
+ * editor. That editor is gone: config/settings.cpp has no MultiDraw key left
+ * to write an order to, so an order the user could drag around was a control
+ * that moved nothing. What stays is the benchmark itself — it measures the
+ * device and reports it, which needs no config key to be true.
  */
 @Composable
 private fun MiuixAngleSourceDialog(controller: AppController) {
@@ -525,19 +281,8 @@ fun MiuixMultidrawBenchDialogs(controller: AppController) {
             Spacer(Modifier.heightIn(min = 12.dp))
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 TextButton(
-                    text = stringResource(R.string.md_bench_discard),
+                    text = stringResource(R.string.ok),
                     onClick = controller::dismissBench,
-                    modifier = Modifier.weight(1f),
-                )
-                TextButton(
-                    text = stringResource(
-                        if (doneState?.anyNoisy == true || doneState?.driverMismatch == true) {
-                            R.string.md_bench_adopt_anyway
-                        } else {
-                            R.string.md_bench_adopt
-                        },
-                    ),
-                    onClick = controller::adoptBenchResult,
                     modifier = Modifier.weight(1f),
                     colors = ButtonDefaults.textButtonColorsPrimary(),
                 )

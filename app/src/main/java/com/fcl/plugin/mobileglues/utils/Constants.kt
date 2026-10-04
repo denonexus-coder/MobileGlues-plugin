@@ -8,6 +8,4 @@ object Constants {
     val MG_DIRECTORY: String = "${Environment.getExternalStorageDirectory().absolutePath}/MG"
 
     val CONFIG_FILE_PATH: String = "$MG_DIRECTORY/$CONFIG_FILE_NAME"
-
-    val GLSL_CACHE_FILE_PATH: String = "$MG_DIRECTORY/glsl_cache.tmp"
 }

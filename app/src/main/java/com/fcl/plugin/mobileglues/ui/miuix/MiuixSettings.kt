@@ -35,7 +35,6 @@ import com.fcl.plugin.mobileglues.settings.AngleConfig
 import com.fcl.plugin.mobileglues.settings.DepthClearFixMode
 import com.fcl.plugin.mobileglues.settings.GlVersion
 import com.fcl.plugin.mobileglues.settings.GlslCacheScale
-import com.fcl.plugin.mobileglues.settings.MultidrawEngine
 import com.fcl.plugin.mobileglues.settings.MGConfig
 import com.fcl.plugin.mobileglues.settings.NoErrorConfig
 import com.fcl.plugin.mobileglues.settings.SpinnerOption
