@@ -238,7 +238,12 @@ data class MGConfig(
     val depthClearFix: DepthClearFixMode = DepthClearFixMode.Disabled,
 
     val glslCache: GlslCacheSize = GlslCacheSize.Default,
-    val useProgramBinaryCache: Boolean = false,
+    // Default must match what the library falls back to when the key is
+    // absent, or the two disagree about a config that never mentioned it. The
+    // library defaults it to on: it is the one setting whose whole purpose is
+    // speed, and a config written before it existed is exactly the case where
+    // the user never got to say no.
+    val useProgramBinaryCache: Boolean = true,
 
     val extComputeShader: Boolean = false,
     val extTimerQuery: Boolean = true,

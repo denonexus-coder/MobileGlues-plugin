@@ -14,9 +14,10 @@ import com.google.gson.JsonObject
  *     enableExtComputeShader, enableExtTimerQuery, enableExtDirectStateAccess,
  *     fsr1Setting
  *
- * `useProgramBinaryCache` is written ahead of the reader — it is the switch for
- * the program-binary cache that lands in the lib in the same pass that fixes
- * `maxShaderCacheSize`; until then the reader simply skips it.
+ * `useProgramBinaryCache` switches the driver program-binary cache. The library
+ * defaults it to on when the key is absent, so the default here has to be on
+ * too — otherwise a config that predates the key reads as enabled in one place
+ * and disabled in the other, and only one of them is telling the truth.
  *
  * Reading still accepts the nested v3 layout this file used to carry, so an
  * upgrade does not silently drop settings; [foreignKeysOf] then drops those
@@ -126,7 +127,11 @@ internal object MGConfigCodec {
             // an older build does not silently become 32.
             readInt(root, K_SHADER_CACHE) ?: readInt(root, "maxGlslCacheSize"),
         ),
-        useProgramBinaryCache = (readInt(root, K_USE_PROGRAM_BINARY_CACHE) ?: 0) > 0,
+        // `?: 1`, not `?: 0`: absent means the config predates the key, and
+        // answering false there would switch the cache off for every install
+        // that simply has not been re-saved yet. The library reads the same
+        // absence the same way, so the two never disagree.
+        useProgramBinaryCache = (readInt(root, K_USE_PROGRAM_BINARY_CACHE) ?: 1) > 0,
 
         extComputeShader = (readInt(root, K_EXT_CS) ?: 0) > 0,
         extTimerQuery = (readInt(root, K_EXT_TIMER_QUERY) ?: 1) > 0,

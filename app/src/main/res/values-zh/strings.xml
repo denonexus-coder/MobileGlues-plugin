@@ -244,10 +244,6 @@
     <string name="sponsor_action_donated">已捐赠</string>
     <string name="sponsor_action_not_yet">还没有</string>
 
-    <string name="option_no_error_none">不忽略</string>
-    <string name="option_no_error_partial">部分忽略</string>
-    <string name="option_no_error_full">完全忽略</string>
-
     <string name="option_angle_clear_workaround_enable_2">模式 2</string>
 
     <string name="option_buffer_upload_streaming">流式</string>
@@ -284,7 +280,6 @@
     <string name="warn_ext_gl43">会增加驱动 bug 的暴露面。除非某个 Mod 明确需要 GL 4.3，否则不要启用。</string>
     <string name="hint_force_depth_precision">仅当出现 24 位精度问题导致的深度闪动时才启用。</string>
     <string name="warn_fsr_with_angle">已知 FSR 与 ANGLE 同时启用会在部分设备上降低性能。</string>
-    <string name="hint_fsr_version">5-tap 更锐利、开销更大；3-tap 稍模糊，在基于瓦片的 GPU（PowerVR、Mali）上更合适。</string>
     <string name="hint_max_anisotropy">在基于瓦片的 GPU 上 16x 可能损失约 5% 帧率。帧率紧张时建议使用 4x。</string>
     <string name="hint_texture_swizzle">如果纹理颜色异常，强制 BGRA。Auto 交给驱动决定。</string>
     <string name="hint_diag_master">关闭时，下方所有诊断项均被忽略。开启时开销约为 0.5% 帧率。</string>
